@@ -19,8 +19,8 @@ RUN npm run build
 # Install serve to serve the static files
 RUN npm install -g serve
 
-# Expose port (Railway will set PORT environment variable)
-EXPOSE $PORT
+# Expose port
+EXPOSE 3000
 
-# Serve the built files
-CMD ["serve", "-s", "dist", "-l", "$PORT"]
+# Serve the built files with proper PORT handling
+CMD ["sh", "-c", "serve -s dist -l ${PORT:-3000}"]
