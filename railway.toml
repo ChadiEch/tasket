@@ -1,6 +1,7 @@
 [build]
 builder = "nixpacks"
+buildCommand = "npm run build"
+startCommand = "vite preview --port $PORT"
 
 [deploy]
-startCommand = "vite preview --port $PORT"
 numReplicas = 1
