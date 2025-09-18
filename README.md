@@ -11,7 +11,6 @@ Tasket is a comprehensive employee task management system built with React, Node
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
 - [Environment Variables](#environment-variables)
-- [Docker Setup](#docker-setup)
 - [Deployment to Railway](#deployment-to-railway)
   - [Frontend Deployment](#frontend-deployment)
   - [Backend Deployment](#backend-deployment)
@@ -63,7 +62,6 @@ Tasket is a comprehensive employee task management system built with React, Node
 
 ### Deployment
 - Railway
-- Docker
 
 ## Project Structure
 
@@ -155,72 +153,22 @@ DATABASE_URL=postgresql://username:password@localhost:5432/tasket
 JWT_SECRET=your_jwt_secret_here
 ```
 
-## Docker Setup
-
-This project includes Docker configuration for easy local development and deployment.
-
-### Running with Docker Compose
-
-1. Make sure Docker and Docker Compose are installed
-2. Run the following command from the project root:
-```bash
-docker-compose up
-```
-
-This will start:
-- PostgreSQL database on port 5432
-- Backend API on port 5002
-- Frontend on port 3000
-
-### Building Docker Images
-
-Frontend:
-```bash
-docker build -f Dockerfile.frontend -t tasket-frontend .
-```
-
-Backend:
-```bash
-cd backend
-docker build -t tasket-backend .
-```
-
 ## Deployment to Railway
 
-### Method 1: Deploy with Docker (Recommended)
+### Frontend Deployment
 
 1. Create a new Railway project
 2. Connect your GitHub repository
-3. Railway will automatically detect the Dockerfile and build the application
-
-For the frontend:
-- Railway will use Dockerfile.frontend
-- Set environment variables:
-  - `VITE_API_BASE_URL` = `https://your-backend-url.up.railway.app/api`
-  - `VITE_WS_BASE_URL` = `https://your-backend-url.up.railway.app`
-
-For the backend:
-- Railway will use backend/Dockerfile
-- Set environment variables:
-  - `PORT` = `5002`
-  - `DATABASE_URL` = (Railway PostgreSQL connection string)
-  - `JWT_SECRET` = (your secret key)
-
-### Method 2: Deploy without Docker
-
-#### Frontend Deployment
-
-1. Create a new Railway project
-2. Connect your GitHub repository
-3. Configure the build settings:
+3. Railway will automatically detect this as a Node.js project
+4. Configure the build settings:
    - Build Command: `npm run build`
    - Output Directory: `dist`
    - Install Command: `npm install`
-4. Add environment variables:
+5. Add environment variables:
    - `VITE_API_BASE_URL` = `https://your-backend-url.up.railway.app/api`
    - `VITE_WS_BASE_URL` = `https://your-backend-url.up.railway.app`
 
-#### Backend Deployment
+### Backend Deployment
 
 1. Create a new Railway service
 2. Connect your GitHub repository

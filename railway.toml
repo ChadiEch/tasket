@@ -1,5 +1,6 @@
 [build]
-dockerfile = "Dockerfile.frontend"
+builder = "nixpacks"
 
 [deploy]
+startCommand = "vite preview --port $PORT"
 numReplicas = 1
