@@ -1,0 +1,5 @@
+[build]
+dockerfile = "Dockerfile.frontend"
+
+[deploy]
+numReplicas = 1
