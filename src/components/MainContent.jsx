@@ -54,6 +54,9 @@ const MainContent = () => {
       case 'calendar':
         // Always use the enhanced calendar with 3-step navigation
         return <EnhancedCalendar />
+      case 'my-tasks-calendar':
+        // My Tasks calendar view for admins
+        return <EnhancedCalendar />
       case 'day-view':
         return <DayView />
       case 'reports':

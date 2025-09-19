@@ -3,8 +3,8 @@ import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 
 const MobileNavigation = () => {
-  const { currentView, navigateTo, searchTerm, setSearchTerm } = useApp()
-  const { employee, isAdmin, signOut } = useAuth()
+  const { currentView, navigateTo, searchTerm, setSearchTerm, isAdmin, getMyTasks } = useApp()
+  const { employee, signOut } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
 
@@ -14,6 +14,7 @@ const MobileNavigation = () => {
     { name: 'Departments', key: 'departments', icon: 'office-building' },
     { name: 'Employees', key: 'employees', icon: 'users' },
     { name: 'Calendar', key: 'calendar', icon: 'calendar' },
+    { name: 'My Tasks', key: 'my-tasks-calendar', icon: 'clipboard-list' },
     { name: 'Notifications', key: 'notifications', icon: 'bell' },
     { name: 'Reports', key: 'reports', icon: 'chart-bar' }
   ]
@@ -86,7 +87,13 @@ const MobileNavigation = () => {
   }
 
   const handleMenuClick = (key) => {
-    navigateTo(key)
+    // Special handling for My Tasks calendar view for admins
+    if (key === 'my-tasks-calendar' && isAdmin) {
+      // Navigate to a special view that shows only the current user's tasks
+      navigateTo('my-tasks-calendar')
+    } else {
+      navigateTo(key)
+    }
     setIsMenuOpen(false)
   }
 
@@ -165,8 +172,8 @@ const MobileNavigation = () => {
 
       {/* Mobile Menu Overlay */}
       {isMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-50 bg-black bg-opacity-50" onClick={() => setIsMenuOpen(false)}>
-          <div className="fixed inset-y-0 right-0 w-64 bg-white shadow-xl" onClick={e => e.stopPropagation()}>
+        <div className="md:hidden fixed inset-0 z-50 bg-black bg-opacity-50 overflow-x-hidden" onClick={() => setIsMenuOpen(false)}>
+          <div className="fixed inset-y-0 right-0 w-64 bg-white shadow-xl overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900">Menu</h2>
               <button
@@ -229,8 +236,8 @@ const MobileNavigation = () => {
       )}
 
       {/* Bottom Navigation for Mobile */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 safe-area-pb">
-        <div className="flex justify-around">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 safe-area-pb overflow-x-auto">
+        <div className="flex justify-around min-w-full">
           {menuItems.slice(0, 5).map((item, index) => (
             <button
               key={index}
@@ -242,7 +249,7 @@ const MobileNavigation = () => {
               }`}
             >
               {getIcon(item.icon)}
-              <span className="text-xs font-medium">{item.name}</span>
+              <span className="text-xs font-medium whitespace-nowrap">{item.name}</span>
             </button>
           ))}
         </div>

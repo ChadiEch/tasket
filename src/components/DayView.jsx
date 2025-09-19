@@ -173,7 +173,7 @@ const DayView = () => {
             </svg>
             {selectedEmployee && isAdmin ? `Back to ${selectedEmployee.name}'s Calendar` : 'Back to Calendar'}
           </button>
-          {selectedEmployee && isAdmin && (
+          {isAdmin && (
             <button
               onClick={navigateToCalendar}
               className="flex items-center text-indigo-600 hover:text-indigo-800 mb-2 touch-manipulation"
