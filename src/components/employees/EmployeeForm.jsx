@@ -227,9 +227,9 @@ const EmployeeForm = ({ employee, departmentId, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-xl mx-4 my-8">
-        <div className="p-6">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto p-2 sm:p-4">
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-xl mx-auto my-4 sm:my-8 max-h-[90vh] overflow-y-auto">
+        <div className="p-4 sm:p-6">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center space-x-4">
               <h2 className="text-xl font-semibold text-gray-800">
@@ -261,7 +261,7 @@ const EmployeeForm = ({ employee, departmentId, onClose }) => {
           
           <form onSubmit={handleSubmit} className="space-y-4">
             {errors.general && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
+              <div className="bg-red-50 border border-red-200 text-red-600 px-3 py-2 rounded-md text-sm">
                 {errors.general}
               </div>
             )}
@@ -276,10 +276,10 @@ const EmployeeForm = ({ employee, departmentId, onClose }) => {
                         ? `${import.meta.env.VITE_API_BASE_URL || ''}${formData.photo}` 
                         : formData.photo} 
                       alt="Employee" 
-                      className="w-24 h-24 rounded-full object-cover border-2 border-gray-300"
+                      className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-2 border-gray-300"
                     />
                   ) : (
-                    <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center border-2 border-gray-300">
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gray-200 flex items-center justify-center border-2 border-gray-300">
                       <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
@@ -473,29 +473,29 @@ const EmployeeForm = ({ employee, departmentId, onClose }) => {
               </div>
             </div>
             
-            <div className="flex justify-between mt-6">
+            <div className="flex flex-col sm:flex-row justify-between gap-2 mt-6">
               {isEditing && isAdmin && (
                 <button
                   type="button"
                   onClick={handleDelete}
-                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
                 >
                   Delete
                 </button>
               )}
               
-              <div className="flex space-x-4 ml-auto">
+              <div className="flex space-x-2 ml-auto">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                  className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
                 >
                   {realTimeUpdateEnabled ? 'Close' : 'Cancel'}
                 </button>
                 {!realTimeUpdateEnabled && (
                   <button
                     type="submit"
-                    className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                   >
                     {isEditing ? 'Update' : 'Create'}
                   </button>
