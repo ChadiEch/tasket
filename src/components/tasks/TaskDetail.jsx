@@ -83,7 +83,7 @@ const TaskDetail = ({ task, onClose }) => {
     // Separate photos, videos, and documents
     const photos = attachments.filter(attachment => attachment.type === 'photo');
     const videos = attachments.filter(attachment => attachment.type === 'video');
-    const documents = attachments.filter(attachment => attachment.type !== 'photo' && attachment.type !== 'video' && attachment.type !== 'link');
+    const documents = attachments.filter(attachment => attachment.type === 'document');
     const links = attachments.filter(attachment => attachment.type === 'link');
 
     return (
@@ -100,13 +100,20 @@ const TaskDetail = ({ task, onClose }) => {
                   href={getAttachmentUrl(photo)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block"
+                  className="block group"
                 >
-                  <img 
-                    src={getAttachmentUrl(photo)} 
-                    alt={photo.name || `Photo ${index + 1}`}
-                    className="h-16 w-16 object-cover rounded-md border border-gray-300"
-                  />
+                  <div className="relative">
+                    <img 
+                      src={getAttachmentUrl(photo)} 
+                      alt={photo.name || `Photo ${index + 1}`}
+                      className="h-20 w-20 object-cover rounded-md border border-gray-300"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 rounded-md flex items-center justify-center">
+                      <svg className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                  </div>
                 </a>
               ))}
             </div>
@@ -123,12 +130,15 @@ const TaskDetail = ({ task, onClose }) => {
                   href={getAttachmentUrl(video)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center px-3 py-2 bg-gray-100 rounded-md hover:bg-gray-200"
+                  className="flex items-center px-3 py-2 bg-gray-100 rounded-md hover:bg-gray-200 group"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-gray-600" viewBox="0 0 20 20" fill="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-purple-500" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
                   </svg>
-                  <span className="text-sm text-gray-700">{video.name || `Video ${index + 1}`}</span>
+                  <span className="text-sm text-gray-700 truncate max-w-[150px]">{video.name || `Video ${index + 1}`}</span>
+                  <svg className="w-4 h-4 ml-1 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
                 </a>
               ))}
             </div>
@@ -145,12 +155,15 @@ const TaskDetail = ({ task, onClose }) => {
                   href={getAttachmentUrl(document)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center px-3 py-2 bg-gray-100 rounded-md hover:bg-gray-200"
+                  className="flex items-center px-3 py-2 bg-gray-100 rounded-md hover:bg-gray-200 group"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 002-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  <span className="text-sm text-gray-700">{document.name || `Document ${index + 1}`}</span>
+                  <span className="text-sm text-gray-700 truncate max-w-[150px]">{document.name || `Document ${index + 1}`}</span>
+                  <svg className="w-4 h-4 ml-1 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
                 </a>
               ))}
               {links.map((link, index) => (
@@ -159,12 +172,15 @@ const TaskDetail = ({ task, onClose }) => {
                   href={getAttachmentUrl(link)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center px-3 py-2 bg-gray-100 rounded-md hover:bg-gray-200"
+                  className="flex items-center px-3 py-2 bg-gray-100 rounded-md hover:bg-gray-200 group"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                   </svg>
-                  <span className="text-sm text-gray-700">{link.name || link.url || `Link ${index + 1}`}</span>
+                  <span className="text-sm text-gray-700 truncate max-w-[150px]">{link.name || link.url || `Link ${index + 1}`}</span>
+                  <svg className="w-4 h-4 ml-1 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
                 </a>
               ))}
             </div>

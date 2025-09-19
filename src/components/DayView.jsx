@@ -293,10 +293,10 @@ const DayView = () => {
                   {task.attachments && task.attachments.length > 0 && (
                     <div className="mt-3">
                       <div className="flex flex-wrap gap-2 mb-2">
-                        {task.attachments.slice(0, 3).map((attachment) => (
+                        {task.attachments.slice(0, 4).map((attachment) => (
                           <div 
                             key={attachment.id} 
-                            className="relative cursor-pointer"
+                            className="relative cursor-pointer group"
                             onClick={() => openAttachment(attachment)}
                           >
                             {attachment.type === 'photo' ? (
@@ -311,6 +311,10 @@ const DayView = () => {
                                   <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                                   </svg>
+                                ) : attachment.type === 'video' ? (
+                                  <svg className="w-8 h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 00-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                                  </svg>
                                 ) : (
                                   <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -319,13 +323,13 @@ const DayView = () => {
                               </div>
                             )}
                             <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs text-center truncate px-1">
-                              {attachment.type === 'photo' ? '📷' : attachment.type === 'document' ? '📄' : '🔗'}
+                              {attachment.type === 'photo' ? '📷' : attachment.type === 'document' ? '📄' : attachment.type === 'video' ? '🎬' : '🔗'}
                             </div>
                           </div>
                         ))}
-                        {task.attachments.length > 3 && (
+                        {task.attachments.length > 4 && (
                           <div className="w-16 h-16 flex items-center justify-center bg-gray-100 rounded border border-gray-200">
-                            <span className="text-xs text-gray-500">+{task.attachments.length - 3}</span>
+                            <span className="text-xs text-gray-500">+{task.attachments.length - 4}</span>
                           </div>
                         )}
                       </div>
@@ -403,30 +407,43 @@ const DayView = () => {
               <div className="space-y-3">
                 {viewingAttachments.attachments && viewingAttachments.attachments.length > 0 ? (
                   viewingAttachments.attachments.map((attachment) => (
-                    <div key={attachment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
+                    <div key={attachment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-md hover:bg-gray-100">
                       <div className="flex items-center">
-                        {attachment.type === 'link' && (
-                          <svg className="w-5 h-5 text-blue-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        {/* Show thumbnail for photo attachments */}
+                        {attachment.type === 'photo' ? (
+                          <div className="relative mr-3">
+                            <img 
+                              src={getAttachmentUrl(attachment)} 
+                              alt={attachment.name}
+                              className="w-10 h-10 object-cover rounded border border-gray-200"
+                            />
+                            <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs text-center truncate px-1">
+                              📷
+                            </div>
+                          </div>
+                        ) : attachment.type === 'link' ? (
+                          <svg className="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                           </svg>
-                        )}
-                        {attachment.type === 'document' && (
-                          <svg className="w-5 h-5 text-yellow-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        ) : attachment.type === 'document' ? (
+                          <svg className="w-5 h-5 text-blue-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
-                        )}
-                        {attachment.type === 'photo' && (
-                          <svg className="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        ) : attachment.type === 'video' ? (
+                          <svg className="w-5 h-5 text-purple-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
                           </svg>
-                        )}
+                        ) : null}
                         <span className="text-sm">{attachment.name}</span>
                       </div>
                       <button
                         onClick={() => openAttachment(attachment)}
-                        className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                        className="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center"
                       >
                         Open
+                        <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
                       </button>
                     </div>
                   ))
