@@ -9,7 +9,7 @@
     "build": "vite build",
     "lint": "eslint ./src --quiet",
     "preview": "vite preview",
-    "start": "vite preview --port $PORT",
+    "start": "vite preview --host --port $PORT",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
