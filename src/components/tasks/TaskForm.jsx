@@ -321,9 +321,9 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-xl mx-4 my-8">
-        <div className="p-6">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto p-2">
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-xl mx-auto my-8 md:my-8">
+        <div className="p-4 md:p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold text-gray-800">
               {isEditing ? 'Edit Task' : 'Add Task'}
@@ -340,7 +340,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
           
           <form onSubmit={handleSubmit} className="space-y-4">
             {errors.general && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
+              <div className="bg-red-50 border border-red-200 text-red-600 px-3 py-2 rounded-md text-sm">
                 {errors.general}
               </div>
             )}
@@ -448,7 +448,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                     value={formData.priority}
                     onChange={handleChange}
                     disabled={!canEdit}
-                    className={`w-full p-2 pl-10 border rounded-md border-gray-300 appearance-none ${!canEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                    className={`w-full p-2 pl-8 border rounded-md border-gray-300 appearance-none ${!canEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                   >
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
@@ -513,7 +513,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
               
               {/* Add Attachment Form */}
               <div className="bg-gray-50 p-3 rounded-md mb-3">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2">
+                <div className="grid grid-cols-1 gap-2 mb-2">
                   <select
                     name="type"
                     value={newAttachment.type}
@@ -533,7 +533,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                       value={newAttachment.url}
                       onChange={handleAttachmentChange}
                       placeholder="Enter URL"
-                      className="p-2 border rounded-md border-gray-300 col-span-2"
+                      className="p-2 border rounded-md border-gray-300"
                     />
                   ) : (
                     <>
@@ -545,7 +545,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                         placeholder="File name"
                         className="p-2 border rounded-md border-gray-300"
                       />
-                      <label className="bg-white text-gray-700 px-3 py-2 border border-gray-300 rounded-md cursor-pointer text-center">
+                      <label className="bg-white text-gray-700 px-3 py-2 border border-gray-300 rounded-md cursor-pointer text-center text-sm">
                         <span>Choose File</span>
                         <input
                           type="file"
@@ -559,7 +559,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                   <button
                     type="button"
                     onClick={addAttachment}
-                    className="bg-indigo-600 text-white px-3 py-2 rounded-md hover:bg-indigo-700"
+                    className="bg-indigo-600 text-white px-3 py-2 rounded-md hover:bg-indigo-700 text-sm"
                   >
                     Add
                   </button>
@@ -591,7 +591,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                           <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
                         </svg>
                       )}
-                      <span className="text-sm">{attachment.name}</span>
+                      <span className="text-sm truncate max-w-[120px]">{attachment.name}</span>
                     </div>
                     <div className="flex items-center">
                       {attachment.type !== 'link' && (
@@ -635,29 +635,29 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
               </div>
             )}
             
-            <div className="flex justify-between mt-6">
+            <div className="flex flex-col sm:flex-row justify-between gap-2">
               {isEditing && canDelete && (
                 <button
                   type="button"
                   onClick={handleDelete}
-                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
                 >
                   Delete
                 </button>
               )}
               
-              <div className="flex space-x-4 ml-auto">
+              <div className="flex space-x-2 ml-auto">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                  className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
                 >
                   {canEdit ? 'Cancel' : 'Close'}
                 </button>
                 {canEdit && (
                   <button
                     type="submit"
-                    className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                   >
                     {isEditing ? 'Update' : 'Create'}
                   </button>
