@@ -38,6 +38,11 @@ export default defineConfig({
       },
     },
   },
+  preview: {
+    allowedHosts: [
+      'tasket-production.up.railway.app'
+    ]
+  },
   test: {
     globals: true,
     environment: 'jsdom',
