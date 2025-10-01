@@ -10,7 +10,7 @@ const getAuthToken = () => {
     console.warn('No auth token found in localStorage');
   }
   return token;
-};
+}; 
 
 // Set auth token in localStorage
 const setAuthToken = (token) => {
