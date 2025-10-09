@@ -146,6 +146,14 @@ const TaskDetail = ({ task, onClose }) => {
                       src={getAttachmentUrl(photo)} 
                       alt={photo.name || `Photo ${index + 1}`}
                       className="h-20 w-20 object-cover rounded-md border border-gray-300"
+                      onError={(e) => {
+                        console.error('Error loading thumbnail:', e);
+                        // Try to reload the image with a cache-busting parameter
+                        const img = e.target;
+                        if (!img.src.includes('?t=')) {
+                          img.src = getAttachmentUrl(photo) + '?t=' + Date.now();
+                        }
+                      }}
                     />
                     <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 rounded-md flex items-center justify-center">
                       <svg className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -166,7 +166,15 @@ const AttachmentViewer = ({ attachments, initialIndex = 0, onClose }) => {
             alt={currentPhoto.name || `Photo ${currentIndex + 1}`}
             className="max-h-[90vh] max-w-full object-contain"
             onLoad={() => setIsLoading(false)}
-            onError={() => setIsLoading(false)}
+            onError={(e) => {
+              console.error('Error loading image:', e);
+              setIsLoading(false);
+              // Try to reload the image with a cache-busting parameter
+              const img = e.target;
+              if (!img.src.includes('?t=')) {
+                img.src = photoUrl + '?t=' + Date.now();
+              }
+            }}
           />
         )}
         

@@ -360,6 +360,14 @@ const DayView = () => {
                                 src={getAttachmentUrl(attachment)} 
                                 alt={attachment.name}
                                 className="w-16 h-16 object-cover rounded border border-gray-200"
+                                onError={(e) => {
+                                  console.error('Error loading thumbnail:', e);
+                                  // Try to reload the image with a cache-busting parameter
+                                  const img = e.target;
+                                  if (!img.src.includes('?t=')) {
+                                    img.src = getAttachmentUrl(attachment) + '?t=' + Date.now();
+                                  }
+                                }}
                               />
                             ) : (
                               <div className="w-16 h-16 flex items-center justify-center bg-gray-100 rounded border border-gray-200">
@@ -473,6 +481,14 @@ const DayView = () => {
                               alt={attachment.name}
                               className="w-10 h-10 object-cover rounded border border-gray-200 cursor-pointer"
                               onClick={() => openPhotoViewer(viewingAttachments.attachments, viewingAttachments.attachments.findIndex(a => a.id === attachment.id))}
+                              onError={(e) => {
+                                console.error('Error loading thumbnail:', e);
+                                // Try to reload the image with a cache-busting parameter
+                                const img = e.target;
+                                if (!img.src.includes('?t=')) {
+                                  img.src = getAttachmentUrl(attachment) + '?t=' + Date.now();
+                                }
+                              }}
                             />
                             <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs text-center truncate px-1">
                               📷
