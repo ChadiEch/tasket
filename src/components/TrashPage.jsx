@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { tasksAPI } from '../lib/api';
 import { TrashIcon, ArrowPathIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 const TrashPage = () => {
