@@ -123,6 +123,7 @@ const TaskDetail = ({ task, onClose }) => {
     return (
       <BulkAttachmentManager 
         attachments={attachments}
+        getAttachmentUrl={getAttachmentUrl}
         onDownload={(attachmentIds) => {
           // Handle bulk download
           const attachmentsToDownload = attachments.filter(att => attachmentIds.includes(att.id));

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const BulkAttachmentManager = ({ attachments, onDownload, onDelete }) => {
+const BulkAttachmentManager = ({ attachments, onDownload, onDelete, getAttachmentUrl }) => {
   const [selectedAttachments, setSelectedAttachments] = useState(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
 
@@ -134,9 +134,17 @@ const BulkAttachmentManager = ({ attachments, onDownload, onDelete }) => {
         <div className="flex items-center">
           {attachment.type === 'photo' ? (
             <img 
-              src={attachment.url} 
+              src={getAttachmentUrl ? getAttachmentUrl(attachment) : attachment.url} 
               alt={attachment.name}
               className="w-10 h-10 object-cover rounded mr-2"
+              onError={(e) => {
+                console.error('Error loading thumbnail:', e);
+                // Try to reload the image with a cache-busting parameter
+                const img = e.target;
+                if (!img.src.includes('?t=')) {
+                  img.src = (getAttachmentUrl ? getAttachmentUrl(attachment) : attachment.url) + '?t=' + Date.now();
+                }
+              }}
             />
           ) : attachment.type === 'video' ? (
             <div className="w-10 h-10 flex items-center justify-center bg-purple-100 rounded mr-2">
