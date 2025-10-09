@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import TaskForm from './TaskForm';
 import AttachmentViewer from '../AttachmentViewer';
 import DeleteConfirmationDialog from './DeleteConfirmationDialog';
+import { PencilIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 const TaskDetail = ({ task, onClose }) => {
   const { isAdmin, deleteTask } = useApp();
@@ -272,18 +273,14 @@ const TaskDetail = ({ task, onClose }) => {
                     onClick={handleEdit}
                     className="text-indigo-600 hover:text-indigo-800"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                    </svg>
+                    <PencilIcon className="h-5 w-5" />
                   </button>
                 )}
                 <button
                   onClick={onClose}
                   className="text-gray-400 hover:text-gray-600"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <XMarkIcon className="h-6 w-6" />
                 </button>
               </div>
             </div>
