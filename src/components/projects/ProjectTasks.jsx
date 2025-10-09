@@ -61,22 +61,39 @@ const ProjectTasks = () => {
 
   // Helper function to construct proper attachment URL
   const getAttachmentUrl = (attachment) => {
+    // If it's already a full URL, return it as is
+    if (attachment.url && (attachment.url.startsWith('http://') || attachment.url.startsWith('https://'))) {
+      return attachment.url;
+    }
+    
+    // If it's a link type, return the URL as is
     if (attachment.type === 'link') {
       return attachment.url;
-    } else {
-      // For documents and photos, construct the full URL if it's a relative path
-      if (attachment.url && attachment.url.startsWith('/uploads/')) {
-        // Get the base URL for the server (without /api)
-        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '';
-        // Remove /api from the URL if present to get the server root
-        const serverBaseUrl = apiBaseUrl.replace('/api', '');
-        // Ensure we don't have double slashes
-        const cleanBaseUrl = serverBaseUrl.endsWith('/') ? serverBaseUrl.slice(0, -1) : serverBaseUrl;
-        const cleanAttachmentUrl = attachment.url.startsWith('/') ? attachment.url : `/${attachment.url}`;
-        return `${cleanBaseUrl}${cleanAttachmentUrl}`;
-      }
-      return attachment.url || '';
     }
+    
+    // For documents and photos, construct the full URL if it's a relative path
+    if (attachment.url && attachment.url.startsWith('/uploads/')) {
+      // Try to get the base URL from environment variables
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '';
+      
+      // If we don't have a base URL from env, construct it from window.location
+      if (!apiBaseUrl) {
+        // Use the current origin but remove any /api path
+        const origin = window.location.origin;
+        const baseUrl = origin.replace(/\/api$/, '');
+        return `${baseUrl}${attachment.url}`;
+      }
+      
+      // Remove /api from the URL if present to get the server root
+      const serverBaseUrl = apiBaseUrl.replace(/\/api$/, '');
+      // Ensure we don't have double slashes
+      const cleanBaseUrl = serverBaseUrl.endsWith('/') ? serverBaseUrl.slice(0, -1) : serverBaseUrl;
+      const cleanAttachmentUrl = attachment.url.startsWith('/') ? attachment.url : `/${attachment.url}`;
+      return `${cleanBaseUrl}${cleanAttachmentUrl}`;
+    }
+    
+    // If it's already a full URL or no URL, return as is
+    return attachment.url || '';
   };
 
   const renderAttachments = (attachments) => {

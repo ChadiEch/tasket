@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 const AttachmentViewer = ({ attachments, initialIndex = 0, onClose }) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Start with loading state as true
 
   // Filter to only show photos for now
   const photos = attachments.filter(attachment => attachment.type === 'photo');
@@ -13,6 +13,11 @@ const AttachmentViewer = ({ attachments, initialIndex = 0, onClose }) => {
       onClose();
     }
   }, [photos.length, onClose]);
+
+  // Reset loading state when current index changes
+  useEffect(() => {
+    setIsLoading(true);
+  }, [currentIndex]);
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -32,22 +37,39 @@ const AttachmentViewer = ({ attachments, initialIndex = 0, onClose }) => {
 
   // Helper function to construct proper attachment URL
   const getAttachmentUrl = (attachment) => {
+    // If it's already a full URL, return it as is
+    if (attachment.url && (attachment.url.startsWith('http://') || attachment.url.startsWith('https://'))) {
+      return attachment.url;
+    }
+    
+    // If it's a link type, return the URL as is
     if (attachment.type === 'link') {
       return attachment.url;
-    } else {
-      // For documents and photos, construct the full URL if it's a relative path
-      if (attachment.url && attachment.url.startsWith('/uploads/')) {
-        // Get the base URL for the server (without /api)
-        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '';
-        // Remove /api from the URL if present to get the server root
-        const serverBaseUrl = apiBaseUrl.replace('/api', '');
-        // Ensure we don't have double slashes
-        const cleanBaseUrl = serverBaseUrl.endsWith('/') ? serverBaseUrl.slice(0, -1) : serverBaseUrl;
-        const cleanAttachmentUrl = attachment.url.startsWith('/') ? attachment.url : `/${attachment.url}`;
-        return `${cleanBaseUrl}${cleanAttachmentUrl}`;
-      }
-      return attachment.url || '';
     }
+    
+    // For documents and photos, construct the full URL if it's a relative path
+    if (attachment.url && attachment.url.startsWith('/uploads/')) {
+      // Try to get the base URL from environment variables
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '';
+      
+      // If we don't have a base URL from env, construct it from window.location
+      if (!apiBaseUrl) {
+        // Use the current origin but remove any /api path
+        const origin = window.location.origin;
+        const baseUrl = origin.replace(/\/api$/, '');
+        return `${baseUrl}${attachment.url}`;
+      }
+      
+      // Remove /api from the URL if present to get the server root
+      const serverBaseUrl = apiBaseUrl.replace(/\/api$/, '');
+      // Ensure we don't have double slashes
+      const cleanBaseUrl = serverBaseUrl.endsWith('/') ? serverBaseUrl.slice(0, -1) : serverBaseUrl;
+      const cleanAttachmentUrl = attachment.url.startsWith('/') ? attachment.url : `/${attachment.url}`;
+      return `${cleanBaseUrl}${cleanAttachmentUrl}`;
+    }
+    
+    // If it's already a full URL or no URL, return as is
+    return attachment.url || '';
   };
 
   const goToPrevious = () => {
@@ -67,6 +89,8 @@ const AttachmentViewer = ({ attachments, initialIndex = 0, onClose }) => {
   if (photos.length === 0) {
     return null;
   }
+
+  const photoUrl = currentPhoto ? getAttachmentUrl(currentPhoto) : '';
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
@@ -124,7 +148,7 @@ const AttachmentViewer = ({ attachments, initialIndex = 0, onClose }) => {
       <div className="flex items-center justify-center w-full h-full">
         {currentPhoto && (
           <img
-            src={getAttachmentUrl(currentPhoto)}
+            src={photoUrl}
             alt={currentPhoto.name || `Photo ${currentIndex + 1}`}
             className="max-h-[90vh] max-w-full object-contain"
             onLoad={() => setIsLoading(false)}
