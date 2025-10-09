@@ -59,6 +59,26 @@ const ProjectTasks = () => {
     }
   };
 
+  // Helper function to construct proper attachment URL
+  const getAttachmentUrl = (attachment) => {
+    if (attachment.type === 'link') {
+      return attachment.url;
+    } else {
+      // For documents and photos, construct the full URL if it's a relative path
+      if (attachment.url && attachment.url.startsWith('/uploads/')) {
+        // Get the base URL for the server (without /api)
+        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '';
+        // Remove /api from the URL if present to get the server root
+        const serverBaseUrl = apiBaseUrl.replace('/api', '');
+        // Ensure we don't have double slashes
+        const cleanBaseUrl = serverBaseUrl.endsWith('/') ? serverBaseUrl.slice(0, -1) : serverBaseUrl;
+        const cleanAttachmentUrl = attachment.url.startsWith('/') ? attachment.url : `/${attachment.url}`;
+        return `${cleanBaseUrl}${cleanAttachmentUrl}`;
+      }
+      return attachment.url || '';
+    }
+  };
+
   const renderAttachments = (attachments) => {
     if (!attachments || attachments.length === 0) {
       return <span className="text-gray-500">No attachments</span>;
@@ -85,7 +105,7 @@ const ProjectTasks = () => {
                   }}
                 >
                   <img 
-                    src={photo.url} 
+                    src={getAttachmentUrl(photo)} 
                     alt={photo.name || `Photo ${index + 1}`}
                     className="h-16 w-16 object-cover rounded-md border border-gray-300"
                   />
@@ -105,7 +125,7 @@ const ProjectTasks = () => {
                     <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
                   </svg>
                   <a 
-                    href={video.url} 
+                    href={getAttachmentUrl(video)} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="ml-2 text-indigo-600 hover:text-indigo-900 truncate"
@@ -128,7 +148,7 @@ const ProjectTasks = () => {
                     <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
                   </svg>
                   <a 
-                    href={document.url} 
+                    href={getAttachmentUrl(document)} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="ml-2 text-indigo-600 hover:text-indigo-900 truncate"

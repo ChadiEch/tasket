@@ -30,6 +30,26 @@ const AttachmentViewer = ({ attachments, initialIndex = 0, onClose }) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentIndex]);
 
+  // Helper function to construct proper attachment URL
+  const getAttachmentUrl = (attachment) => {
+    if (attachment.type === 'link') {
+      return attachment.url;
+    } else {
+      // For documents and photos, construct the full URL if it's a relative path
+      if (attachment.url && attachment.url.startsWith('/uploads/')) {
+        // Get the base URL for the server (without /api)
+        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '';
+        // Remove /api from the URL if present to get the server root
+        const serverBaseUrl = apiBaseUrl.replace('/api', '');
+        // Ensure we don't have double slashes
+        const cleanBaseUrl = serverBaseUrl.endsWith('/') ? serverBaseUrl.slice(0, -1) : serverBaseUrl;
+        const cleanAttachmentUrl = attachment.url.startsWith('/') ? attachment.url : `/${attachment.url}`;
+        return `${cleanBaseUrl}${cleanAttachmentUrl}`;
+      }
+      return attachment.url || '';
+    }
+  };
+
   const goToPrevious = () => {
     setCurrentIndex((prevIndex) => 
       prevIndex === 0 ? photos.length - 1 : prevIndex - 1
@@ -104,7 +124,7 @@ const AttachmentViewer = ({ attachments, initialIndex = 0, onClose }) => {
       <div className="flex items-center justify-center w-full h-full">
         {currentPhoto && (
           <img
-            src={currentPhoto.url}
+            src={getAttachmentUrl(currentPhoto)}
             alt={currentPhoto.name || `Photo ${currentIndex + 1}`}
             className="max-h-[90vh] max-w-full object-contain"
             onLoad={() => setIsLoading(false)}
