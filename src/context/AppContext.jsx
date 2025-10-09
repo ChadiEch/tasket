@@ -182,14 +182,44 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const deleteTask = async (taskId) => {
+  const deleteTask = async (taskId, action = 'delete') => {
     try {
       setError(null);
-      await tasksAPI.deleteTask(taskId);
+      await tasksAPI.deleteTask(taskId, action);
       setTasks(prev => prev.filter(task => task.id !== taskId));
       return { error: null };
     } catch (error) {
       console.error('Error deleting task:', error);
+      setError(error.message);
+      return { error: error.message };
+    }
+  };
+
+  const restoreTask = async (taskId) => {
+    try {
+      setError(null);
+      const response = await tasksAPI.restoreTask(taskId);
+      // Update the task in the tasks list if it exists there
+      setTasks(prev => prev.map(task => 
+        task.id === taskId ? response.task : task
+      ));
+      return { task: response.task, error: null };
+    } catch (error) {
+      console.error('Error restoring task:', error);
+      setError(error.message);
+      return { task: null, error: error.message };
+    }
+  };
+
+  const permanentlyDeleteTask = async (taskId) => {
+    try {
+      setError(null);
+      await tasksAPI.permanentlyDeleteTask(taskId);
+      // Remove from tasks list if it exists there
+      setTasks(prev => prev.filter(task => task.id !== taskId));
+      return { error: null };
+    } catch (error) {
+      console.error('Error permanently deleting task:', error);
       setError(error.message);
       return { error: error.message };
     }
@@ -567,6 +597,8 @@ export const AppProvider = ({ children }) => {
     createTask,
     updateTask,
     deleteTask,
+    restoreTask,
+    permanentlyDeleteTask,
     addDepartment,
     createDepartment,
     updateDepartment,

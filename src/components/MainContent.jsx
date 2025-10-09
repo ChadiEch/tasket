@@ -16,6 +16,7 @@ import FilteredTasksView from './FilteredTasksView'
 import ProjectList from './projects/ProjectList'
 import ProjectTasks from './projects/ProjectTasks'
 import NotificationPage from './NotificationPage'
+import TrashPage from './TrashPage'
 
 const MainContent = () => {
   const { currentView, searchTerm, navigateTo, selectedProject } = useApp()
@@ -73,6 +74,8 @@ const MainContent = () => {
         return <FilteredTasksView />
       case 'notifications':
         return <NotificationPage />
+      case 'trash':
+        return <TrashPage />
       case 'tasks':
         // Always use the enhanced calendar with 3-step navigation
         return <EnhancedCalendar />

@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import TaskForm from './TaskForm';
-import AttachmentViewer from '../AttachmentViewer'; // Added import
+import AttachmentViewer from '../AttachmentViewer';
+import DeleteConfirmationDialog from './DeleteConfirmationDialog';
 
 const TaskDetail = ({ task, onClose }) => {
-  const { isAdmin } = useApp();
+  const { isAdmin, deleteTask } = useApp();
   const [isEditMode, setIsEditMode] = useState(false);
-  const [viewingPhotos, setViewingPhotos] = useState(null); // Added state for photo viewing
-  const [photoIndex, setPhotoIndex] = useState(0); // Added state for photo index
+  const [viewingPhotos, setViewingPhotos] = useState(null);
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
   const employee = task?.assignedToEmployee;
   
@@ -21,6 +23,17 @@ const TaskDetail = ({ task, onClose }) => {
   
   const closeEditMode = () => {
     setIsEditMode(false);
+  };
+  
+  const handleDeleteConfirm = async (action) => {
+    setShowDeleteDialog(false);
+    try {
+      await deleteTask(task.id, action);
+      onClose();
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      alert('Failed to delete task');
+    }
   };
   
   const formatDate = (dateString) => {
@@ -338,7 +351,15 @@ const TaskDetail = ({ task, onClose }) => {
             
             {renderAttachments(task.attachments)}
             
-            <div className="mt-6 flex justify-end">
+            <div className="mt-6 flex justify-end space-x-2">
+              {isAdmin && (
+                <button
+                  onClick={() => setShowDeleteDialog(true)}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  Delete
+                </button>
+              )}
               <button
                 onClick={onClose}
                 className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400"
@@ -356,6 +377,15 @@ const TaskDetail = ({ task, onClose }) => {
           attachments={viewingPhotos} 
           initialIndex={photoIndex} 
           onClose={() => setViewingPhotos(null)} 
+        />
+      )}
+      
+      {/* Delete Confirmation Dialog */}
+      {showDeleteDialog && (
+        <DeleteConfirmationDialog
+          task={task}
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setShowDeleteDialog(false)}
         />
       )}
     </div>

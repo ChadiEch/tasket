@@ -173,6 +173,10 @@ export const tasksAPI = {
     return apiRequest(`/tasks?${params}`);
   },
 
+  getTrashedTasks: async () => {
+    return apiRequest('/tasks/trashed');
+  },
+
   getTask: async (id) => {
     return apiRequest(`/tasks/${id}`);
   },
@@ -310,8 +314,20 @@ export const tasksAPI = {
     }
   },
 
-  deleteTask: async (id) => {
-    return apiRequest(`/tasks/${id}`, {
+  deleteTask: async (id, action = 'delete') => {
+    return apiRequest(`/tasks/${id}?action=${action}`, {
+      method: 'DELETE',
+    });
+  },
+
+  restoreTask: async (id) => {
+    return apiRequest(`/tasks/${id}/restore`, {
+      method: 'PUT',
+    });
+  },
+
+  permanentlyDeleteTask: async (id) => {
+    return apiRequest(`/tasks/${id}/permanent`, {
       method: 'DELETE',
     });
   },
