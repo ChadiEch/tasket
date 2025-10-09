@@ -77,7 +77,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
     const files = Array.from(e.target.files);
     if (files.length > 0) {
       // Store the files to be uploaded
-      const fileAttachments = files.map(file => {
+      const fileAttachments = files.map((file, index) => {
         let type = 'document'; // Default type
         if (file.type.startsWith('image/')) {
           type = 'photo';
@@ -88,7 +88,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
         return {
           file,
           attachment: {
-            id: Date.now() + Math.random(),
+            id: Date.now() + Math.random() + index, // Unique ID
             type: type,
             url: URL.createObjectURL(file), // For preview only
             name: file.name
@@ -104,30 +104,42 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
       
       setAttachmentFileMap(prev => ({ ...prev, ...newFileMap }));
       
-      // Add file info to newAttachment for display (use the first one)
-      setNewAttachment(fileAttachments[0].attachment);
+      // Add all file attachments at once to the form data
+      setFormData(prevFormData => ({
+        ...prevFormData,
+        attachments: [
+          ...prevFormData.attachments,
+          ...fileAttachments.map(({ attachment }) => attachment)
+        ]
+      }));
+      
+      // Show a notification of how many files were added
+      if (fileAttachments.length > 1) {
+        console.log(`Added ${fileAttachments.length} files to attachments`);
+      }
     }
   };
 
   const addAttachment = () => {
     if ((newAttachment.type === 'link' && !newAttachment.url) || 
-        ((newAttachment.type === 'document' || newAttachment.type === 'photo') && (!newAttachment.name || !newAttachment.url))) {
+        ((newAttachment.type === 'document' || newAttachment.type === 'photo' || newAttachment.type === 'video') && (!newAttachment.name || !newAttachment.url))) {
       return;
     }
     
-    const attachment = {
-      id: newAttachment.id || Date.now() + Math.random(), // Use existing ID if it's a file, generate new one for links
-      type: newAttachment.type,
-      // For file attachments, use a placeholder URL that will be replaced by the server
-      // For links, use the actual URL
-      url: newAttachment.type === 'link' ? newAttachment.url : (newAttachment.url || ''), 
-      name: newAttachment.name || newAttachment.url
-    };
-    
-    setFormData({
-      ...formData,
-      attachments: [...formData.attachments, attachment]
-    });
+    // For links, add a single attachment
+    if (newAttachment.type === 'link') {
+      const attachment = {
+        id: newAttachment.id || Date.now() + Math.random(), // Use existing ID if it's a file, generate new one for links
+        type: newAttachment.type,
+        url: newAttachment.url, 
+        name: newAttachment.name || newAttachment.url
+      };
+      
+      setFormData({
+        ...formData,
+        attachments: [...formData.attachments, attachment]
+      });
+    }
     
     // Clear newAttachment but preserve file mapping
     setNewAttachment({ type: 'link', url: '', name: '' });
@@ -513,7 +525,14 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
             
             {/* Attachments Section */}
             <div className="border-t border-gray-200 pt-4">
-              <h3 className="text-lg font-medium text-gray-800 mb-3">Attachments</h3>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-lg font-medium text-gray-800">Attachments</h3>
+                {formData.attachments.length > 0 && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    {formData.attachments.length} attached
+                  </span>
+                )}
+              </div>
               
               {/* Add Attachment Form */}
               <div className="bg-gray-50 p-3 rounded-md mb-3">
@@ -531,42 +550,47 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                   </select>
                   
                   {newAttachment.type === 'link' ? (
-                    <input
-                      type="url"
-                      name="url"
-                      value={newAttachment.url}
-                      onChange={handleAttachmentChange}
-                      placeholder="Enter URL"
-                      className="p-2 border rounded-md border-gray-300"
-                    />
-                  ) : (
                     <>
+                      <input
+                        type="url"
+                        name="url"
+                        value={newAttachment.url}
+                        onChange={handleAttachmentChange}
+                        placeholder="Enter URL"
+                        className="p-2 border rounded-md border-gray-300"
+                      />
                       <input
                         type="text"
                         name="name"
                         value={newAttachment.name}
                         onChange={handleAttachmentChange}
-                        placeholder="File name"
+                        placeholder="Link name (optional)"
                         className="p-2 border rounded-md border-gray-300"
                       />
-                      <label className="bg-white text-gray-700 px-3 py-2 border border-gray-300 rounded-md cursor-pointer text-center text-sm">
-                        <span>Choose File</span>
-                        <input
-                          type="file"
-                          className="hidden"
-                          onChange={handleFileUpload}
-                          accept={newAttachment.type === 'photo' ? 'image/*' : newAttachment.type === 'video' ? 'video/*' : '.pdf,.doc,.docx'}
-                        />
-                      </label>
+                      <button
+                        type="button"
+                        onClick={addAttachment}
+                        className="bg-indigo-600 text-white px-3 py-2 rounded-md hover:bg-indigo-700 text-sm"
+                      >
+                        Add Link
+                      </button>
                     </>
+                  ) : (
+                    <label className="bg-white text-gray-700 px-3 py-2 border border-gray-300 rounded-md cursor-pointer text-center text-sm">
+                      <span>Choose Files (Multiple Selection Allowed)</span>
+                      <input
+                        type="file"
+                        className="hidden"
+                        onChange={handleFileUpload}
+                        accept={
+                          newAttachment.type === 'photo' ? 'image/*' : 
+                          newAttachment.type === 'video' ? 'video/*' : 
+                          '.pdf,.doc,.docx'
+                        }
+                        multiple // Allow multiple file selection
+                      />
+                    </label>
                   )}
-                  <button
-                    type="button"
-                    onClick={addAttachment}
-                    className="bg-indigo-600 text-white px-3 py-2 rounded-md hover:bg-indigo-700 text-sm"
-                  >
-                    Add
-                  </button>
                 </div>
               </div>
               
@@ -635,7 +659,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                 )}
               </div>
             </div>
-            
+
             {!canEdit && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 mb-4">
                 <p className="text-sm text-yellow-800">
