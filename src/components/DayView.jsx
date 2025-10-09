@@ -314,7 +314,15 @@ const DayView = () => {
                           <div 
                             key={attachment.id} 
                             className="relative cursor-pointer group"
-                            onClick={() => openAttachment(attachment)}
+                            onClick={() => {
+                              if (attachment.type === 'photo') {
+                                // Open photo viewer for photos
+                                openPhotoViewer(task.attachments, task.attachments.findIndex(a => a.id === attachment.id));
+                              } else {
+                                // Open in new tab for other attachment types
+                                openAttachment(attachment);
+                              }
+                            }}
                           >
                             {attachment.type === 'photo' ? (
                               <img 
