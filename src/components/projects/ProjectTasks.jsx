@@ -116,56 +116,45 @@ const ProjectTasks = () => {
     }
 
     // Separate photos, videos, and documents
-    const photos = attachments.filter(attachment => attachment.type === 'photo');
-    const videos = attachments.filter(attachment => attachment.type === 'video');
-    const documents = attachments.filter(attachment => attachment.type !== 'photo' && attachment.type !== 'video');
+    const photosAndVideos = attachments.filter(attachment => 
+      attachment.type === 'photo' || attachment.type === 'video'
+    );
+    const documents = attachments.filter(attachment => 
+      attachment.type !== 'photo' && attachment.type !== 'video'
+    );
 
     return (
       <div className="mt-2">
-        {photos.length > 0 && (
+        {photosAndVideos.length > 0 && (
           <div className="mt-2">
-            <h4 className="text-sm font-medium text-gray-700">Photos:</h4>
+            <h4 className="text-sm font-medium text-gray-700">Media:</h4>
             <div className="flex flex-wrap gap-2 mt-1">
-              {photos.map((photo, index) => (
+              {photosAndVideos.map((media, index) => (
                 <div 
                   key={index} 
                   className="relative cursor-pointer"
                   onClick={() => {
-                    setViewingPhotos(photos);
+                    setViewingPhotos(photosAndVideos);
                     setPhotoIndex(index);
                   }}
                 >
-                  <img 
-                    src={getAttachmentUrl(photo)} 
-                    alt={photo.name || `Photo ${index + 1}`}
-                    className="h-16 w-16 object-cover rounded-md border border-gray-300"
-                  />
+                  {media.type === 'photo' ? (
+                    <img 
+                      src={getAttachmentUrl(media)} 
+                      alt={media.name || `Photo ${index + 1}`}
+                      className="h-16 w-16 object-cover rounded-md border border-gray-300"
+                    />
+                  ) : (
+                    // Video thumbnail
+                    <div className="h-16 w-16 flex items-center justify-center bg-gray-100 rounded-md border border-gray-300">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-purple-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                      </svg>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
-          </div>
-        )}
-
-        {videos.length > 0 && (
-          <div className="mt-2">
-            <h4 className="text-sm font-medium text-gray-700">Videos:</h4>
-            <ul className="mt-1 space-y-1">
-              {videos.map((video, index) => (
-                <li key={index} className="flex items-center text-sm">
-                  <svg className="flex-shrink-0 h-4 w-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
-                  </svg>
-                  <a 
-                    href={getAttachmentUrl(video)} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="ml-2 text-indigo-600 hover:text-indigo-900 truncate"
-                  >
-                    {video.name || `Video ${index + 1}`}
-                  </a>
-                </li>
-              ))}
-            </ul>
           </div>
         )}
 

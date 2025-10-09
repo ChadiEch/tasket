@@ -90,6 +90,15 @@ const DayView = () => {
     setPhotoIndex(index)
   }
 
+  const openMediaViewer = (attachments, index) => {
+    // Filter to show both photos and videos
+    const mediaAttachments = attachments.filter(attachment => 
+      attachment.type === 'photo' || attachment.type === 'video'
+    );
+    setViewingPhotos(mediaAttachments);
+    setPhotoIndex(index);
+  };
+
   // Helper function to get local date string in YYYY-MM-DD format
   const getLocalDateString = (date) => {
     const year = date.getFullYear();
@@ -346,9 +355,9 @@ const DayView = () => {
                             key={attachment.id} 
                             className="relative cursor-pointer group"
                             onClick={() => {
-                              if (attachment.type === 'photo') {
-                                // Open photo viewer for photos
-                                openPhotoViewer(task.attachments, task.attachments.findIndex(a => a.id === attachment.id));
+                              if (attachment.type === 'photo' || attachment.type === 'video') {
+                                // Open media viewer for photos and videos
+                                openMediaViewer(task.attachments, task.attachments.findIndex(a => a.id === attachment.id));
                               } else {
                                 // Open in new tab for other attachment types
                                 openAttachment(attachment);
@@ -480,7 +489,7 @@ const DayView = () => {
                               src={getAttachmentUrl(attachment)} 
                               alt={attachment.name}
                               className="w-10 h-10 object-cover rounded border border-gray-200 cursor-pointer"
-                              onClick={() => openPhotoViewer(viewingAttachments.attachments, viewingAttachments.attachments.findIndex(a => a.id === attachment.id))}
+                              onClick={() => openMediaViewer(viewingAttachments.attachments, viewingAttachments.attachments.findIndex(a => a.id === attachment.id))}
                               onError={(e) => {
                                 console.error('Error loading thumbnail:', e);
                                 // Try to reload the image with a cache-busting parameter

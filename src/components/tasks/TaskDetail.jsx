@@ -119,8 +119,9 @@ const TaskDetail = ({ task, onClose }) => {
     }
 
     // Separate photos, videos, and documents
-    const photos = attachments.filter(attachment => attachment.type === 'photo');
-    const videos = attachments.filter(attachment => attachment.type === 'video');
+    const photosAndVideos = attachments.filter(attachment => 
+      attachment.type === 'photo' || attachment.type === 'video'
+    );
     const documents = attachments.filter(attachment => attachment.type === 'document');
     const links = attachments.filter(attachment => attachment.type === 'link');
 
@@ -128,33 +129,42 @@ const TaskDetail = ({ task, onClose }) => {
       <div className="mt-4">
         <h4 className="text-sm font-medium text-gray-500 mb-2">Attachments</h4>
         
-        {photos.length > 0 && (
+        {photosAndVideos.length > 0 && (
           <div className="mb-3">
-            <h5 className="text-sm font-medium text-gray-600 mb-1">Photos:</h5>
+            <h5 className="text-sm font-medium text-gray-600 mb-1">Media:</h5>
             <div className="flex flex-wrap gap-2">
-              {photos.map((photo, index) => (
+              {photosAndVideos.map((media, index) => (
                 <div
                   key={index}
                   onClick={() => {
-                    setViewingPhotos(photos);
+                    setViewingPhotos(photosAndVideos);
                     setPhotoIndex(index);
                   }}
                   className="block group cursor-pointer"
                 >
                   <div className="relative">
-                    <img 
-                      src={getAttachmentUrl(photo)} 
-                      alt={photo.name || `Photo ${index + 1}`}
-                      className="h-20 w-20 object-cover rounded-md border border-gray-300"
-                      onError={(e) => {
-                        console.error('Error loading thumbnail:', e);
-                        // Try to reload the image with a cache-busting parameter
-                        const img = e.target;
-                        if (!img.src.includes('?t=')) {
-                          img.src = getAttachmentUrl(photo) + '?t=' + Date.now();
-                        }
-                      }}
-                    />
+                    {media.type === 'photo' ? (
+                      <img 
+                        src={getAttachmentUrl(media)} 
+                        alt={media.name || `Photo ${index + 1}`}
+                        className="h-20 w-20 object-cover rounded-md border border-gray-300"
+                        onError={(e) => {
+                          console.error('Error loading thumbnail:', e);
+                          // Try to reload the image with a cache-busting parameter
+                          const img = e.target;
+                          if (!img.src.includes('?t=')) {
+                            img.src = getAttachmentUrl(media) + '?t=' + Date.now();
+                          }
+                        }}
+                      />
+                    ) : (
+                      // Video thumbnail
+                      <div className="h-20 w-20 flex items-center justify-center bg-gray-100 rounded-md border border-gray-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-purple-500" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                        </svg>
+                      </div>
+                    )}
                     <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 rounded-md flex items-center justify-center">
                       <svg className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -162,31 +172,6 @@ const TaskDetail = ({ task, onClose }) => {
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {videos.length > 0 && (
-          <div className="mb-3">
-            <h5 className="text-sm font-medium text-gray-600 mb-1">Videos:</h5>
-            <div className="flex flex-wrap gap-2">
-              {videos.map((video, index) => (
-                <a
-                  key={index}
-                  href={getAttachmentUrl(video)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center px-3 py-2 bg-gray-100 rounded-md hover:bg-gray-200 group"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-purple-500" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
-                  </svg>
-                  <span className="text-sm text-gray-700 truncate max-w-[150px]">{video.name || `Video ${index + 1}`}</span>
-                  <svg className="w-4 h-4 ml-1 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
               ))}
             </div>
           </div>
