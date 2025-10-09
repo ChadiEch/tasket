@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { projectsAPI } from '../../lib/api';
+import AttachmentViewer from '../AttachmentViewer'; // Added import
 
 const ProjectTasks = () => {
   const { navigateTo, selectedProject: project, currentUser } = useApp(); // Added currentUser
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [viewingPhotos, setViewingPhotos] = useState(null); // Added state for photo viewing
+  const [photoIndex, setPhotoIndex] = useState(0); // Added state for photo index
 
   useEffect(() => {
     if (project) {
@@ -73,19 +76,19 @@ const ProjectTasks = () => {
             <h4 className="text-sm font-medium text-gray-700">Photos:</h4>
             <div className="flex flex-wrap gap-2 mt-1">
               {photos.map((photo, index) => (
-                <div key={index} className="relative">
-                  <a 
-                    href={photo.url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="block"
-                  >
-                    <img 
-                      src={photo.url} 
-                      alt={photo.name || `Photo ${index + 1}`}
-                      className="h-16 w-16 object-cover rounded-md border border-gray-300"
-                    />
-                  </a>
+                <div 
+                  key={index} 
+                  className="relative cursor-pointer"
+                  onClick={() => {
+                    setViewingPhotos(photos);
+                    setPhotoIndex(index);
+                  }}
+                >
+                  <img 
+                    src={photo.url} 
+                    alt={photo.name || `Photo ${index + 1}`}
+                    className="h-16 w-16 object-cover rounded-md border border-gray-300"
+                  />
                 </div>
               ))}
             </div>
@@ -312,6 +315,15 @@ const ProjectTasks = () => {
           </ul>
         )}
       </div>
+      
+      {/* Added AttachmentViewer component */}
+      {viewingPhotos && (
+        <AttachmentViewer 
+          attachments={viewingPhotos} 
+          initialIndex={photoIndex} 
+          onClose={() => setViewingPhotos(null)} 
+        />
+      )}
     </div>
   );
 };

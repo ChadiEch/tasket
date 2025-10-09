@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import TaskForm from './tasks/TaskForm'
 import { useWebSocket } from '../context/WebSocketContext'
+import AttachmentViewer from './AttachmentViewer'
 
 const DayView = () => {
   const { selectedDate, selectedEmployee, getTasksForDate, navigateToCalendar, navigateToTasks, currentUser, deleteTask, isAdmin, tasks } = useApp()
@@ -10,6 +11,8 @@ const DayView = () => {
   const [editingTask, setEditingTask] = useState(null)
   const [viewingAttachments, setViewingAttachments] = useState(null)
   const [dayTasks, setDayTasks] = useState([])
+  const [viewingPhotos, setViewingPhotos] = useState(null)
+  const [photoIndex, setPhotoIndex] = useState(0)
   
   // Update tasks when date, selected employee, or tasks change
   useEffect(() => {
@@ -75,6 +78,16 @@ const DayView = () => {
 
   const openAttachmentsView = (task) => {
     setViewingAttachments(task)
+  }
+
+  const closePhotoViewer = () => {
+    setViewingPhotos(null)
+    setPhotoIndex(0)
+  }
+
+  const openPhotoViewer = (attachments, index) => {
+    setViewingPhotos(attachments)
+    setPhotoIndex(index)
   }
 
   // Helper function to get local date string in YYYY-MM-DD format
@@ -173,7 +186,7 @@ const DayView = () => {
             className="flex items-center text-indigo-600 hover:text-indigo-800 mb-2 touch-manipulation"
           >
             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
             {selectedEmployee && isAdmin ? `Back to ${selectedEmployee.name}'s Calendar` : 'Back to Calendar'}
           </button>
@@ -419,7 +432,8 @@ const DayView = () => {
                             <img 
                               src={getAttachmentUrl(attachment)} 
                               alt={attachment.name}
-                              className="w-10 h-10 object-cover rounded border border-gray-200"
+                              className="w-10 h-10 object-cover rounded border border-gray-200 cursor-pointer"
+                              onClick={() => openPhotoViewer(viewingAttachments.attachments, viewingAttachments.attachments.findIndex(a => a.id === attachment.id))}
                             />
                             <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs text-center truncate px-1">
                               📷
@@ -458,6 +472,15 @@ const DayView = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Photo Viewer Modal */}
+      {viewingPhotos && (
+        <AttachmentViewer 
+          attachments={viewingPhotos} 
+          initialIndex={photoIndex} 
+          onClose={closePhotoViewer} 
+        />
       )}
     </div>
   )

@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import TaskForm from './TaskForm';
+import AttachmentViewer from '../AttachmentViewer'; // Added import
 
 const TaskDetail = ({ task, onClose }) => {
   const { isAdmin } = useApp();
   const [isEditMode, setIsEditMode] = useState(false);
+  const [viewingPhotos, setViewingPhotos] = useState(null); // Added state for photo viewing
+  const [photoIndex, setPhotoIndex] = useState(0); // Added state for photo index
   
   const employee = task?.assignedToEmployee;
   
@@ -99,12 +102,13 @@ const TaskDetail = ({ task, onClose }) => {
             <h5 className="text-sm font-medium text-gray-600 mb-1">Photos:</h5>
             <div className="flex flex-wrap gap-2">
               {photos.map((photo, index) => (
-                <a
+                <div
                   key={index}
-                  href={getAttachmentUrl(photo)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block group"
+                  onClick={() => {
+                    setViewingPhotos(photos);
+                    setPhotoIndex(index);
+                  }}
+                  className="block group cursor-pointer"
                 >
                   <div className="relative">
                     <img 
@@ -118,7 +122,7 @@ const TaskDetail = ({ task, onClose }) => {
                       </svg>
                     </div>
                   </div>
-                </a>
+                </div>
               ))}
             </div>
           </div>
@@ -305,6 +309,15 @@ const TaskDetail = ({ task, onClose }) => {
             </div>
           </div>
         </div>
+      )}
+      
+      {/* Added AttachmentViewer component */}
+      {viewingPhotos && (
+        <AttachmentViewer 
+          attachments={viewingPhotos} 
+          initialIndex={photoIndex} 
+          onClose={() => setViewingPhotos(null)} 
+        />
       )}
     </div>
   );
