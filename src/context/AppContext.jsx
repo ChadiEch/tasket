@@ -134,7 +134,10 @@ export const AppProvider = ({ children }) => {
         employeesAPI.getEmployees(),
       ]);
 
-      setTasks(tasksResponse.tasks || []);
+      // Filter out any trashed tasks that might have slipped through
+      const nonTrashedTasks = (tasksResponse.tasks || []).filter(task => task.status !== 'trashed');
+      
+      setTasks(nonTrashedTasks);
       setDepartments(departmentsResponse.departments || []);
       setEmployees(employeesResponse.employees || []);
     } catch (error) {
@@ -227,14 +230,22 @@ export const AppProvider = ({ children }) => {
 
   // Update task state without making an API call
   const updateTaskState = (updatedTask) => {
-    setTasks(prev => prev.map(task => 
-      task.id === updatedTask.id ? updatedTask : task
-    ));
+    // Ensure we don't add trashed tasks to the main task list
+    if (updatedTask.status === 'trashed') {
+      setTasks(prev => prev.filter(task => task.id !== updatedTask.id));
+    } else {
+      setTasks(prev => prev.map(task => 
+        task.id === updatedTask.id ? updatedTask : task
+      ));
+    }
   };
 
   // Add task to state without making an API call
   const addTaskState = (newTask) => {
-    setTasks(prev => [newTask, ...prev]);
+    // Ensure we don't add trashed tasks to the main task list
+    if (newTask.status !== 'trashed') {
+      setTasks(prev => [newTask, ...prev]);
+    }
   };
 
   // Department operations
@@ -366,22 +377,26 @@ export const AppProvider = ({ children }) => {
 
   // Utility functions
   const getTasksByStatus = (status) => {
-    return tasks.filter(task => task.status === status);
+    // Exclude trashed tasks from all status filters
+    return tasks.filter(task => task.status === status && task.status !== 'trashed');
   };
 
   const getTasksByEmployee = (employeeId) => {
-    return tasks.filter(task => task.assigned_to === employeeId);
+    // Exclude trashed tasks from employee filters
+    return tasks.filter(task => task.assigned_to === employeeId && task.status !== 'trashed');
   };
 
   const getTasksByDepartment = (departmentId) => {
-    return tasks.filter(task => task.department_id === departmentId);
+    // Exclude trashed tasks from department filters
+    return tasks.filter(task => task.department_id === departmentId && task.status !== 'trashed');
   };
 
   const getTasksByDateRange = (startDate, endDate) => {
+    // Exclude trashed tasks from date range filters
     return tasks.filter(task => {
       if (!task.due_date) return false;
       const dueDate = new Date(task.due_date);
-      return dueDate >= startDate && dueDate <= endDate;
+      return dueDate >= startDate && dueDate <= endDate && task.status !== 'trashed';
     });
   };
 
@@ -455,7 +470,11 @@ export const AppProvider = ({ children }) => {
 
   const getMyTasks = () => {
     if (!user) return [];
-    return tasks.filter(task => task.assigned_to === user.id || task.created_by === user.id);
+    // Exclude trashed tasks from my tasks
+    return tasks.filter(task => 
+      (task.assigned_to === user.id || task.created_by === user.id) && 
+      task.status !== 'trashed'
+    );
   };
 
   const navigateToDayView = (date) => {
@@ -486,6 +505,9 @@ export const AppProvider = ({ children }) => {
     const targetDateStr = `${year}-${month}-${day}`;
     
     let filteredTasks = tasks.filter(task => {
+      // Exclude trashed tasks
+      if (task.status === 'trashed') return false;
+      
       if (!task.created_at) return false;
       
       // Handle different date formats and ensure proper comparison with timezone awareness
@@ -518,15 +540,20 @@ export const AppProvider = ({ children }) => {
 
   // Function to get overdue tasks
   const getOverdueTasks = () => {
+    // Exclude trashed tasks from overdue tasks
     return tasks.filter(task => {
       const dueDate = new Date(task.due_date);
-      return dueDate < new Date() && task.status !== 'completed';
+      return dueDate < new Date() && task.status !== 'completed' && task.status !== 'trashed';
     });
   };
 
   // Function to get high priority tasks
   const getHighPriorityTasks = () => {
-    return tasks.filter(task => task.priority === 'high' || task.priority === 'urgent');
+    // Exclude trashed tasks from high priority tasks
+    return tasks.filter(task => 
+      (task.priority === 'high' || task.priority === 'urgent') && 
+      task.status !== 'trashed'
+    );
   };
 
   // Function to get tasks filtered by department, employee, and date range
@@ -534,7 +561,11 @@ export const AppProvider = ({ children }) => {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - parseInt(dateRangeDays));
     
+    // Exclude trashed tasks from filtered tasks
     return tasks.filter(task => {
+      // Exclude trashed tasks
+      if (task.status === 'trashed') return false;
+      
       const matchesDepartment = !departmentId || task.department_id === departmentId;
       const matchesEmployee = !employeeId || task.assigned_to === employeeId;
       
