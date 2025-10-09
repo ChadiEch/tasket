@@ -25,7 +25,7 @@ export const getEmployeePhotoUrl = (photoPath) => {
   
   // If it's a local path, construct full URL
   if (photoPath.startsWith('/')) {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '';
     // Remove /api from baseUrl if present to get the server root
     const serverBaseUrl = baseUrl.replace('/api', '');
     return `${serverBaseUrl}${photoPath}`;

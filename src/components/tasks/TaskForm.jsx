@@ -312,7 +312,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
       // For existing attachments, construct the full URL
       if (attachment.url && attachment.url.startsWith('/uploads/')) {
         // Get the base URL without the /api part
-        const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '';
         const serverBaseUrl = baseUrl.replace('/api', '');
         return `${serverBaseUrl}${attachment.url}`;
       }

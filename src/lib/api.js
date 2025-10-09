@@ -1,6 +1,6 @@
 // API configuration for Node.js backend
 // Use relative URLs when using proxy, absolute URLs in production
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '/api';
 
 // Get auth token from localStorage
 const getAuthToken = () => {

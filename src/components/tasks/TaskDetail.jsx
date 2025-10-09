@@ -64,13 +64,13 @@ const TaskDetail = ({ task, onClose }) => {
       return attachment.url;
     } else {
       // For documents, photos, and videos, construct the full URL if it's a relative path
-      if (attachment.url.startsWith('/uploads/')) {
+      if (attachment.url && attachment.url.startsWith('/uploads/')) {
         // Get the base URL without the /api part
-        const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '';
         const serverBaseUrl = baseUrl.replace('/api', '');
         return `${serverBaseUrl}${attachment.url}`;
       }
-      return attachment.url;
+      return attachment.url || '';
     }
   };
 
