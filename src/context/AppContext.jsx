@@ -202,10 +202,19 @@ export const AppProvider = ({ children }) => {
     try {
       setError(null);
       const response = await tasksAPI.restoreTask(taskId);
-      // Update the task in the tasks list if it exists there
-      setTasks(prev => prev.map(task => 
-        task.id === taskId ? response.task : task
-      ));
+      // Add the restored task back to the tasks list if it doesn't exist there
+      setTasks(prev => {
+        const existingIndex = prev.findIndex(task => task.id === taskId);
+        if (existingIndex >= 0) {
+          // Update existing task
+          const newTasks = [...prev];
+          newTasks[existingIndex] = response.task;
+          return newTasks;
+        } else {
+          // Add restored task to the beginning of the list
+          return [response.task, ...prev];
+        }
+      });
       return { task: response.task, error: null };
     } catch (error) {
       console.error('Error restoring task:', error);
