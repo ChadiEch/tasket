@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { tasksAPI } from '../lib/api';
 import { TrashIcon, ArrowPathIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 const TrashPage = () => {
-  const { tasks, setTasks } = useApp();
+  const { tasks, restoreTask, permanentlyDeleteTask } = useApp();
   const [trashedTasks, setTrashedTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -39,7 +38,10 @@ const TrashPage = () => {
 
   const handleRestore = async (taskId) => {
     try {
-      await tasksAPI.restoreTask(taskId);
+      const result = await restoreTask(taskId);
+      if (result.error) {
+        throw new Error(result.error);
+      }
       // Remove from trashed tasks list
       setTrashedTasks(prev => prev.filter(task => task.id !== taskId));
       // Remove from selected tasks if it was selected
@@ -58,7 +60,10 @@ const TrashPage = () => {
     }
 
     try {
-      await tasksAPI.permanentlyDeleteTask(taskId);
+      const result = await permanentlyDeleteTask(taskId);
+      if (result.error) {
+        throw new Error(result.error);
+      }
       // Remove from trashed tasks list
       setTrashedTasks(prev => prev.filter(task => task.id !== taskId));
       // Remove from selected tasks if it was selected
@@ -80,7 +85,7 @@ const TrashPage = () => {
 
     try {
       const results = await Promise.allSettled(
-        selectedTasks.map(taskId => tasksAPI.restoreTask(taskId))
+        selectedTasks.map(taskId => restoreTask(taskId))
       );
       
       const successful = results.filter(result => result.status === 'fulfilled').length;
@@ -111,7 +116,7 @@ const TrashPage = () => {
 
     try {
       const results = await Promise.allSettled(
-        selectedTasks.map(taskId => tasksAPI.permanentlyDeleteTask(taskId))
+        selectedTasks.map(taskId => permanentlyDeleteTask(taskId))
       );
       
       const successful = results.filter(result => result.status === 'fulfilled').length;
