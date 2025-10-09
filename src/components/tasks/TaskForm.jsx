@@ -311,10 +311,14 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
       }
       // For existing attachments, construct the full URL
       if (attachment.url && attachment.url.startsWith('/uploads/')) {
-        // Get the base URL without the /api part
-        const baseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '';
-        const serverBaseUrl = baseUrl.replace('/api', '');
-        return `${serverBaseUrl}${attachment.url}`;
+        // Get the base URL for the server (without /api)
+        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '';
+        // Remove /api from the URL if present to get the server root
+        const serverBaseUrl = apiBaseUrl.replace('/api', '');
+        // Ensure we don't have double slashes
+        const cleanBaseUrl = serverBaseUrl.endsWith('/') ? serverBaseUrl.slice(0, -1) : serverBaseUrl;
+        const cleanAttachmentUrl = attachment.url.startsWith('/') ? attachment.url : `/${attachment.url}`;
+        return `${cleanBaseUrl}${cleanAttachmentUrl}`;
       }
       return attachment.url || '';
     }

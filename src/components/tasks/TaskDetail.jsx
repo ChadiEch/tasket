@@ -65,10 +65,14 @@ const TaskDetail = ({ task, onClose }) => {
     } else {
       // For documents, photos, and videos, construct the full URL if it's a relative path
       if (attachment.url && attachment.url.startsWith('/uploads/')) {
-        // Get the base URL without the /api part
-        const baseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '';
-        const serverBaseUrl = baseUrl.replace('/api', '');
-        return `${serverBaseUrl}${attachment.url}`;
+        // Get the base URL for the server (without /api)
+        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '';
+        // Remove /api from the URL if present to get the server root
+        const serverBaseUrl = apiBaseUrl.replace('/api', '');
+        // Ensure we don't have double slashes
+        const cleanBaseUrl = serverBaseUrl.endsWith('/') ? serverBaseUrl.slice(0, -1) : serverBaseUrl;
+        const cleanAttachmentUrl = attachment.url.startsWith('/') ? attachment.url : `/${attachment.url}`;
+        return `${cleanBaseUrl}${cleanAttachmentUrl}`;
       }
       return attachment.url || '';
     }
@@ -137,7 +141,7 @@ const TaskDetail = ({ task, onClose }) => {
                   </svg>
                   <span className="text-sm text-gray-700 truncate max-w-[150px]">{video.name || `Video ${index + 1}`}</span>
                   <svg className="w-4 h-4 ml-1 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6m0 0v6m0-6L10 14" />
                   </svg>
                 </a>
               ))}
@@ -162,7 +166,7 @@ const TaskDetail = ({ task, onClose }) => {
                   </svg>
                   <span className="text-sm text-gray-700 truncate max-w-[150px]">{document.name || `Document ${index + 1}`}</span>
                   <svg className="w-4 h-4 ml-1 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6m0 0v6m0-6L10 14" />
                   </svg>
                 </a>
               ))}
@@ -179,7 +183,7 @@ const TaskDetail = ({ task, onClose }) => {
                   </svg>
                   <span className="text-sm text-gray-700 truncate max-w-[150px]">{link.name || link.url || `Link ${index + 1}`}</span>
                   <svg className="w-4 h-4 ml-1 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6m0 0v6m0-6L10 14" />
                   </svg>
                 </a>
               ))}

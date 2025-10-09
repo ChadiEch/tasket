@@ -127,10 +127,14 @@ const DayView = () => {
     } else {
       // For documents and photos, construct the full URL if it's a relative path
       if (attachment.url && attachment.url.startsWith('/uploads/')) {
-        // Get the base URL without the /api part
-        const baseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '';
-        const serverBaseUrl = baseUrl.replace('/api', '');
-        return `${serverBaseUrl}${attachment.url}`;
+        // Get the base URL for the server (without /api)
+        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '';
+        // Remove /api from the URL if present to get the server root
+        const serverBaseUrl = apiBaseUrl.replace('/api', '');
+        // Ensure we don't have double slashes
+        const cleanBaseUrl = serverBaseUrl.endsWith('/') ? serverBaseUrl.slice(0, -1) : serverBaseUrl;
+        const cleanAttachmentUrl = attachment.url.startsWith('/') ? attachment.url : `/${attachment.url}`;
+        return `${cleanBaseUrl}${cleanAttachmentUrl}`;
       }
       return attachment.url || '';
     }
@@ -313,7 +317,7 @@ const DayView = () => {
                                   </svg>
                                 ) : attachment.type === 'video' ? (
                                   <svg className="w-8 h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 00-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                                    <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
                                   </svg>
                                 ) : (
                                   <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
