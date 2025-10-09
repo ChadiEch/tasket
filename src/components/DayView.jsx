@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext'
 import TaskForm from './tasks/TaskForm'
 import { useWebSocket } from '../context/WebSocketContext'
 import AttachmentViewer from './AttachmentViewer'
+import DeleteConfirmationDialog from './tasks/DeleteConfirmationDialog'
 
 const DayView = () => {
   const { selectedDate, selectedEmployee, getTasksForDate, navigateToCalendar, navigateToTasks, currentUser, deleteTask, isAdmin, tasks } = useApp()
@@ -13,6 +14,8 @@ const DayView = () => {
   const [dayTasks, setDayTasks] = useState([])
   const [viewingPhotos, setViewingPhotos] = useState(null)
   const [photoIndex, setPhotoIndex] = useState(0)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [taskToDelete, setTaskToDelete] = useState(null)
   
   // Update tasks when date, selected employee, or tasks change
   useEffect(() => {
@@ -57,13 +60,25 @@ const DayView = () => {
   }
 
   const handleDeleteTask = async (taskId) => {
-    if (window.confirm('Are you sure you want to delete this task?')) {
-      try {
-        await deleteTask(taskId)
-      } catch (error) {
-        console.error('Error deleting task:', error)
-        alert('Failed to delete task. Please try again.')
-      }
+    // Find the task to delete
+    const task = dayTasks.find(t => t.id === taskId)
+    if (task) {
+      setTaskToDelete(task)
+      setShowDeleteDialog(true)
+    }
+  }
+
+  const handleDeleteConfirm = async (action) => {
+    setShowDeleteDialog(false)
+    if (!taskToDelete) return
+    
+    try {
+      await deleteTask(taskToDelete.id, action)
+    } catch (error) {
+      console.error('Error deleting task:', error)
+      alert('Failed to delete task. Please try again.')
+    } finally {
+      setTaskToDelete(null)
     }
   }
 
@@ -544,6 +559,18 @@ const DayView = () => {
           attachments={viewingPhotos} 
           initialIndex={photoIndex} 
           onClose={closePhotoViewer} 
+        />
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteDialog && taskToDelete && (
+        <DeleteConfirmationDialog
+          task={taskToDelete}
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => {
+            setShowDeleteDialog(false)
+            setTaskToDelete(null)
+          }}
         />
       )}
     </div>

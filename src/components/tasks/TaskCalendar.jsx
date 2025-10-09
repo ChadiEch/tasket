@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import TaskDetail from './TaskDetail';
 import { useWebSocket } from '../../context/WebSocketContext';
+import DeleteConfirmationDialog from './DeleteConfirmationDialog';
 
 const TaskCalendar = () => {
   const { 
@@ -12,7 +13,8 @@ const TaskCalendar = () => {
     navigateToDayView,
     isAdmin,
     tasks,
-    navigateToCalendar
+    navigateToCalendar,
+    deleteTask
   } = useApp();
   
   const { subscribeToTaskUpdates, connected } = useWebSocket();
@@ -20,6 +22,8 @@ const TaskCalendar = () => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [visibleDates, setVisibleDates] = useState([]);
   const [tasksByDate, setTasksByDate] = useState({});
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState(null);
   
   const employee = selectedEmployee ? getEmployeeById(selectedEmployee.id) : null;
   const employeeTasks = selectedEmployee ? getTasksByEmployee(selectedEmployee.id) : [];
@@ -141,6 +145,29 @@ const TaskCalendar = () => {
     return tasksByDate[dateStr] || [];
   };
   
+  const handleTaskDelete = async (task) => {
+    setTaskToDelete(task);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteConfirm = async (action) => {
+    setShowDeleteDialog(false);
+    if (!taskToDelete) return;
+    
+    try {
+      await deleteTask(taskToDelete.id, action);
+      // Close task detail if it's open for the deleted task
+      if (selectedTask && selectedTask.id === taskToDelete.id) {
+        setSelectedTask(null);
+      }
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      alert('Failed to delete task');
+    } finally {
+      setTaskToDelete(null);
+    }
+  };
+
   if (!employee) {
     return null;
   }
@@ -236,18 +263,36 @@ const TaskCalendar = () => {
                   {dayTasks.map(task => (
                     <div
                       key={task.id}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleTaskClick(task);
-                      }}
-                      className={`mb-1 px-2 py-1 rounded-md text-xs truncate cursor-pointer ${
-                        task.priority === 'urgent' ? 'bg-red-200 text-red-800' :
-                        task.priority === 'high' ? 'bg-orange-200 text-orange-800' :
-                        task.priority === 'medium' ? 'bg-yellow-200 text-yellow-800' :
-                        'bg-green-200 text-green-800'
-                      }`}
+                      className="relative group"
                     >
-                      {task.title}
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleTaskClick(task);
+                        }}
+                        className={`mb-1 px-2 py-1 rounded-md text-xs truncate cursor-pointer ${
+                          task.priority === 'urgent' ? 'bg-red-200 text-red-800' :
+                          task.priority === 'high' ? 'bg-orange-200 text-orange-800' :
+                          task.priority === 'medium' ? 'bg-yellow-200 text-yellow-800' :
+                          'bg-green-200 text-green-800'
+                        }`}
+                      >
+                        {task.title}
+                      </div>
+                      {isAdmin && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleTaskDelete(task);
+                          }}
+                          className="absolute top-0 right-0 p-1 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Delete task"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -261,6 +306,18 @@ const TaskCalendar = () => {
         <TaskDetail
           task={selectedTask}
           onClose={closeTaskDetail}
+        />
+      )}
+      
+      {/* Delete Confirmation Dialog */}
+      {showDeleteDialog && taskToDelete && (
+        <DeleteConfirmationDialog
+          task={taskToDelete}
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => {
+            setShowDeleteDialog(false);
+            setTaskToDelete(null);
+          }}
         />
       )}
     </div>

@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import TaskDetail from './tasks/TaskDetail'
+import DeleteConfirmationDialog from './tasks/DeleteConfirmationDialog'
 
 const EnhancedCalendar = () => {
-  const { tasks, navigateToDayView, selectedEmployee, navigateToCalendar, currentUser, isAdmin } = useApp()
+  const { tasks, navigateToDayView, selectedEmployee, navigateToCalendar, currentUser, isAdmin, deleteTask } = useApp()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState('year') // 'year', 'month', or 'days'
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
   const [viewingTask, setViewingTask] = useState(null)
   const [taskToView, setTaskToView] = useState(null) // For opening a specific task
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [taskToDelete, setTaskToDelete] = useState(null)
 
   const today = new Date()
 
@@ -258,6 +261,29 @@ const EnhancedCalendar = () => {
     }
   }
 
+  const handleTaskDelete = async (task) => {
+    setTaskToDelete(task)
+    setShowDeleteDialog(true)
+  }
+
+  const handleDeleteConfirm = async (action) => {
+    setShowDeleteDialog(false)
+    if (!taskToDelete) return
+    
+    try {
+      await deleteTask(taskToDelete.id, action)
+      // Close task detail if it's open for the deleted task
+      if (viewingTask && viewingTask.id === taskToDelete.id) {
+        setViewingTask(null)
+      }
+    } catch (error) {
+      console.error('Error deleting task:', error)
+      alert('Failed to delete task')
+    } finally {
+      setTaskToDelete(null)
+    }
+  }
+
   // Function to open a task by ID (to be called from other components)
   const openTaskFromNotification = (taskId) => {
     if (!taskId) {
@@ -433,13 +459,31 @@ const EnhancedCalendar = () => {
                           {getTasksForDay(day).slice(0, 3).map(task => (
                             <div 
                               key={task.id}
-                              className="text-xs p-1 bg-indigo-100 text-indigo-800 rounded truncate cursor-pointer hover:bg-indigo-200"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openTaskView(task);
-                              }}
+                              className="relative group"
                             >
-                              {task.title}
+                              <div
+                                className="text-xs p-1 bg-indigo-100 text-indigo-800 rounded truncate cursor-pointer hover:bg-indigo-200"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openTaskView(task);
+                                }}
+                              >
+                                {task.title}
+                              </div>
+                              {isAdmin && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleTaskDelete(task);
+                                  }}
+                                  className="absolute top-0 right-0 p-1 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  title="Delete task"
+                                >
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              )}
                             </div>
                           ))}
                           {getTasksForDay(day).length > 3 && (
@@ -465,8 +509,20 @@ const EnhancedCalendar = () => {
           onClose={closeTaskView}
         />
       )}
+      
+      {/* Delete Confirmation Dialog */}
+      {showDeleteDialog && taskToDelete && (
+        <DeleteConfirmationDialog
+          task={taskToDelete}
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => {
+            setShowDeleteDialog(false)
+            setTaskToDelete(null)
+          }}
+        />
+      )}
     </div>
   )
 }
 
-export default EnhancedCalendar;
+export default EnhancedCalendar
