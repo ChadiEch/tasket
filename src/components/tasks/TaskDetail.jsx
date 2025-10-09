@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import TaskForm from './TaskForm';
-import AttachmentViewer from '../AttachmentViewer';
-import BulkAttachmentManager from '../BulkAttachmentManager';
+import AttachmentViewer from '../AttachmentViewer'; // Added import
 
 const TaskDetail = ({ task, onClose }) => {
   const { isAdmin } = useApp();
@@ -119,30 +118,107 @@ const TaskDetail = ({ task, onClose }) => {
       return null;
     }
 
-    // Use the new BulkAttachmentManager component
+    // Separate photos, videos, and documents
+    const photosAndVideos = attachments.filter(attachment => 
+      attachment.type === 'photo' || attachment.type === 'video'
+    );
+    const documents = attachments.filter(attachment => attachment.type === 'document');
+    const links = attachments.filter(attachment => attachment.type === 'link');
+
     return (
-      <BulkAttachmentManager 
-        attachments={attachments}
-        getAttachmentUrl={getAttachmentUrl}
-        onDownload={(attachmentIds) => {
-          // Handle bulk download
-          const attachmentsToDownload = attachments.filter(att => attachmentIds.includes(att.id));
-          attachmentsToDownload.forEach(attachment => {
-            const link = document.createElement('a');
-            link.href = getAttachmentUrl(attachment);
-            link.download = attachment.name || `attachment-${attachment.id}`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-          });
-        }}
-        onDelete={(attachmentIds) => {
-          // In a real implementation, this would call a function to delete the attachments
-          console.log('Delete requested for attachments:', attachmentIds);
-          // For now, just show an alert
-          alert(`Delete requested for ${attachmentIds.length} attachments. In a real app, this would delete the attachments from the server.`);
-        }}
-      />
+      <div className="mt-4">
+        <h4 className="text-sm font-medium text-gray-500 mb-2">Attachments</h4>
+        
+        {photosAndVideos.length > 0 && (
+          <div className="mb-3">
+            <h5 className="text-sm font-medium text-gray-600 mb-1">Media:</h5>
+            <div className="flex flex-wrap gap-2">
+              {photosAndVideos.map((media, index) => (
+                <div
+                  key={index}
+                  onClick={() => {
+                    setViewingPhotos(photosAndVideos);
+                    setPhotoIndex(index);
+                  }}
+                  className="block group cursor-pointer"
+                >
+                  <div className="relative">
+                    {media.type === 'photo' ? (
+                      <img 
+                        src={getAttachmentUrl(media)} 
+                        alt={media.name || `Photo ${index + 1}`}
+                        className="h-20 w-20 object-cover rounded-md border border-gray-300"
+                        onError={(e) => {
+                          console.error('Error loading thumbnail:', e);
+                          // Try to reload the image with a cache-busting parameter
+                          const img = e.target;
+                          if (!img.src.includes('?t=')) {
+                            img.src = getAttachmentUrl(media) + '?t=' + Date.now();
+                          }
+                        }}
+                      />
+                    ) : (
+                      // Video thumbnail
+                      <div className="h-20 w-20 flex items-center justify-center bg-gray-100 rounded-md border border-gray-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-purple-500" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                        </svg>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 rounded-md flex items-center justify-center">
+                      <svg className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {(documents.length > 0 || links.length > 0) && (
+          <div>
+            <h5 className="text-sm font-medium text-gray-600 mb-1">Files & Links:</h5>
+            <div className="flex flex-wrap gap-2">
+              {documents.map((document, index) => (
+                <a
+                  key={index}
+                  href={getAttachmentUrl(document)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center px-3 py-2 bg-gray-100 rounded-md hover:bg-gray-200 group"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span className="text-sm text-gray-700 truncate max-w-[150px]">{document.name || `Document ${index + 1}`}</span>
+                  <svg className="w-4 h-4 ml-1 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              ))}
+              {links.map((link, index) => (
+                <a
+                  key={index}
+                  href={getAttachmentUrl(link)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center px-3 py-2 bg-gray-100 rounded-md hover:bg-gray-200 group"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                  <span className="text-sm text-gray-700 truncate max-w-[150px]">{link.name || link.url || `Link ${index + 1}`}</span>
+                  <svg className="w-4 h-4 ml-1 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     );
   };
 
