@@ -27,18 +27,17 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
-  // Helper function to get datetime string for the selected date at the current time
+  // Helper function to get datetime string for the selected date at midnight (00:00)
   const getDateTimeForSelectedDate = (selectedDateStr) => {
     if (!selectedDateStr) return getLocalDateTimeString();
     
-    // Parse the selected date (YYYY-MM-DD format)
+    // Parse the selected date (YYYY-MM-DD format) and set time to 00:00
     const [year, month, day] = selectedDateStr.split('-').map(Number);
     
-    // Create a new date with the selected date but current time
-    const now = new Date();
-    const dateWithSelectedDay = new Date(year, month - 1, day, now.getHours(), now.getMinutes());
+    // Create a new date with the selected date at midnight
+    const dateAtMidnight = new Date(year, month - 1, day, 0, 0);
     
-    return getLocalDateTimeString(dateWithSelectedDay);
+    return getLocalDateTimeString(dateAtMidnight);
   };
 
   const [formData, setFormData] = useState({
@@ -51,7 +50,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
     estimated_hours: task?.estimated_hours !== undefined && task?.estimated_hours !== null ? task.estimated_hours : 1.00,
     department_id: task?.department_id || currentUser?.department_id,
     attachments: task?.attachments || [],
-    // For admins creating new tasks, use the selected date; for editing or non-admins, use the task's created_at
+    // For admins creating new tasks, use the selected date at midnight; for editing or non-admins, use the task's created_at
     created_at: task?.created_at ? getLocalDateTimeString(new Date(task.created_at)) : (isAdmin && !isEditing ? getDateTimeForSelectedDate(date) : getLocalDateTimeString())
   });
 
@@ -79,11 +78,11 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
         estimated_hours: task.estimated_hours !== undefined && task.estimated_hours !== null ? task.estimated_hours : 1.00,
         department_id: task.department_id || currentUser?.department_id,
         attachments: task.attachments || [],
-        // For admins editing tasks, use the task's created_at; for new tasks, use selected date
+        // For admins editing tasks, use the task's created_at; for new tasks, use selected date at midnight
         created_at: task.created_at ? getLocalDateTimeString(new Date(task.created_at)) : (isAdmin && !isEditing ? getDateTimeForSelectedDate(date) : getLocalDateTimeString())
       });
     } else if (isAdmin && !isEditing) {
-      // For new tasks by admin, initialize with selected date
+      // For new tasks by admin, initialize with selected date at midnight
       setFormData(prev => ({
         ...prev,
         created_at: getDateTimeForSelectedDate(date)
