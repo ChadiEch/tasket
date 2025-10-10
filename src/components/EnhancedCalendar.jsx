@@ -6,7 +6,7 @@ import DeleteConfirmationDialog from './tasks/DeleteConfirmationDialog'
 const EnhancedCalendar = ({ view: propView }) => {
   const { tasks, navigateToDayView, selectedEmployee, navigateToCalendar, currentUser, isAdmin, deleteTask } = useApp()
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [view, setView] = useState('year') // 'year', 'month', or 'days'
+  const [view, setView] = useState(propView === 'my-tasks' ? 'my-tasks' : 'year') // 'year', 'month', or 'days'
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
   const [viewingTask, setViewingTask] = useState(null)
@@ -172,7 +172,8 @@ const EnhancedCalendar = ({ view: propView }) => {
 
   const handleMonthSelect = (monthIndex) => {
     setSelectedMonth(monthIndex)
-    setView('days')
+    // For my-tasks view, we still want to show the days view
+    setView(propView === 'my-tasks' ? 'my-tasks' : 'days')
   }
 
   const handleDayClick = (day) => {
@@ -191,7 +192,8 @@ const EnhancedCalendar = ({ view: propView }) => {
   // Handle month click in year view (navigate to month view)
   const handleYearViewMonthClick = (monthIndex) => {
     setSelectedMonth(monthIndex)
-    setView('days')
+    // For my-tasks view, we still want to show the days view
+    setView(propView === 'my-tasks' ? 'my-tasks' : 'days')
   }
 
   const navigateToToday = () => {
@@ -199,13 +201,14 @@ const EnhancedCalendar = ({ view: propView }) => {
     setSelectedYear(now.getFullYear())
     setSelectedMonth(now.getMonth())
     setCurrentDate(now)
-    setView('days')
+    // For my-tasks view, we still want to show the days view
+    setView(propView === 'my-tasks' ? 'my-tasks' : 'days')
   }
 
   const goBack = () => {
     if (view === 'month') {
       setView('year');
-    } else if (view === 'days') {
+    } else if (view === 'days' || view === 'my-tasks') {
       setView('year');
     }
     // Keep selectedEmployee context when going back
