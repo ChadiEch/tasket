@@ -17,6 +17,16 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
     return `${year}-${month}-${day}`;
   };
 
+  // Helper function to get datetime string in YYYY-MM-DDTHH:MM format
+  const getLocalDateTimeString = (date = new Date()) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
   const [formData, setFormData] = useState({
     title: task?.title || '',
     description: task?.description || '',
@@ -26,7 +36,9 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
     assigned_to: task?.assigned_to || employeeId || currentUser?.id,
     estimated_hours: task?.estimated_hours !== undefined && task?.estimated_hours !== null ? task.estimated_hours : 1.00,
     department_id: task?.department_id || currentUser?.department_id,
-    attachments: task?.attachments || []
+    attachments: task?.attachments || [],
+    // Add created_at field for admins
+    created_at: task?.created_at ? getLocalDateTimeString(new Date(task.created_at)) : getLocalDateTimeString()
   });
 
   const [errors, setErrors] = useState({
@@ -52,7 +64,9 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
         assigned_to: task.assigned_to || employeeId || currentUser?.id,
         estimated_hours: task.estimated_hours !== undefined && task.estimated_hours !== null ? task.estimated_hours : 1.00,
         department_id: task.department_id || currentUser?.department_id,
-        attachments: task.attachments || []
+        attachments: task.attachments || [],
+        // Add created_at field for admins
+        created_at: task.created_at ? getLocalDateTimeString(new Date(task.created_at)) : getLocalDateTimeString()
       });
     }
   }, [task, employeeId, date, currentUser]);
@@ -434,6 +448,22 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                   className={`w-full p-2 border rounded-md border-gray-300 ${!canEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 />
               </div>
+              
+              {/* Add created_at field for admins */}
+              {isAdmin && (
+                <div>
+                  <label htmlFor="created_at" className="block text-sm font-medium text-gray-700 mb-1">Created At</label>
+                  <input
+                    type="datetime-local"
+                    id="created_at"
+                    name="created_at"
+                    value={formData.created_at}
+                    onChange={handleChange}
+                    disabled={!canEdit}
+                    className={`w-full p-2 border rounded-md border-gray-300 ${!canEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
