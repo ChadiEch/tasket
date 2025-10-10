@@ -6,7 +6,8 @@ import DeleteConfirmationDialog from './tasks/DeleteConfirmationDialog'
 const EnhancedCalendar = ({ view: propView }) => {
   const { tasks, navigateToDayView, selectedEmployee, navigateToCalendar, currentUser, isAdmin, deleteTask } = useApp()
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [view, setView] = useState(propView === 'my-tasks' ? 'my-tasks' : 'year') // 'year', 'month', or 'days'
+  const [view, setView] = useState('year') // 'year' or 'days'
+  const [isMyTasksMode, setIsMyTasksMode] = useState(propView === 'my-tasks') // Whether we're filtering by current user
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
   const [viewingTask, setViewingTask] = useState(null)
@@ -34,11 +35,9 @@ const EnhancedCalendar = ({ view: propView }) => {
     }
   }, [taskToView, tasks]);
 
-  // Set view based on prop
+  // Set my tasks mode based on prop
   useEffect(() => {
-    if (propView === 'my-tasks') {
-      setView('my-tasks');
-    }
+    setIsMyTasksMode(propView === 'my-tasks');
   }, [propView]);
 
   // Generate years for selection (10 years before and after current year)
@@ -90,7 +89,7 @@ const EnhancedCalendar = ({ view: propView }) => {
     // For "My Tasks" view, filter by current user
     if (selectedEmployee) {
       filteredTasks = filteredTasks.filter(task => task.assigned_to === selectedEmployee.id)
-    } else if (propView === 'my-tasks' || view === 'my-tasks') {
+    } else if (isMyTasksMode) {
       // Filter by current user for "My Tasks" view
       filteredTasks = filteredTasks.filter(task => task.assigned_to === currentUser?.id)
     }
@@ -121,7 +120,7 @@ const EnhancedCalendar = ({ view: propView }) => {
   }
 
   const getTasksForDay = (day) => {
-    if (!day || (view !== 'days' && view !== 'my-tasks')) return []
+    if (!day || view !== 'days') return []
     
     // Create date for the specific day using local timezone
     const targetDate = new Date(selectedYear, selectedMonth, day)
@@ -157,7 +156,7 @@ const EnhancedCalendar = ({ view: propView }) => {
     // For "My Tasks" view, filter by current user
     if (selectedEmployee) {
       filteredTasks = filteredTasks.filter(task => task.assigned_to === selectedEmployee.id)
-    } else if (propView === 'my-tasks' || view === 'my-tasks') {
+    } else if (isMyTasksMode) {
       // Filter by current user for "My Tasks" view
       filteredTasks = filteredTasks.filter(task => task.assigned_to === currentUser?.id)
     }
@@ -172,8 +171,7 @@ const EnhancedCalendar = ({ view: propView }) => {
 
   const handleMonthSelect = (monthIndex) => {
     setSelectedMonth(monthIndex)
-    // For my-tasks view, we still want to show the days view
-    setView(propView === 'my-tasks' ? 'my-tasks' : 'days')
+    setView('days')
   }
 
   const handleDayClick = (day) => {
@@ -192,8 +190,7 @@ const EnhancedCalendar = ({ view: propView }) => {
   // Handle month click in year view (navigate to month view)
   const handleYearViewMonthClick = (monthIndex) => {
     setSelectedMonth(monthIndex)
-    // For my-tasks view, we still want to show the days view
-    setView(propView === 'my-tasks' ? 'my-tasks' : 'days')
+    setView('days')
   }
 
   const navigateToToday = () => {
@@ -201,14 +198,11 @@ const EnhancedCalendar = ({ view: propView }) => {
     setSelectedYear(now.getFullYear())
     setSelectedMonth(now.getMonth())
     setCurrentDate(now)
-    // For my-tasks view, we still want to show the days view
-    setView(propView === 'my-tasks' ? 'my-tasks' : 'days')
+    setView('days')
   }
 
   const goBack = () => {
-    if (view === 'month') {
-      setView('year');
-    } else if (view === 'days' || view === 'my-tasks') {
+    if (view === 'days') {
       setView('year');
     }
     // Keep selectedEmployee context when going back
@@ -217,6 +211,8 @@ const EnhancedCalendar = ({ view: propView }) => {
   const navigateToAllEmployeesCalendar = () => {
     // Navigate to calendar view but keep the selected employee context
     navigateToCalendar();
+    // Also exit my tasks mode when navigating to all employees
+    setIsMyTasksMode(false);
   };
 
   const openTaskView = (task) => {
@@ -308,7 +304,7 @@ const EnhancedCalendar = ({ view: propView }) => {
   window.openTaskFromNotification = openTaskFromNotification;
 
   // Check if we're in "My Tasks" view
-  const isMyTasksView = propView === 'my-tasks' || view === 'my-tasks';
+  const isMyTasksView = isMyTasksMode;
 
   return (
     <div className="p-6">
@@ -318,12 +314,22 @@ const EnhancedCalendar = ({ view: propView }) => {
           <h2 className="text-2xl font-bold text-gray-800">
             {isMyTasksView ? 'My Tasks Calendar' : 
              view === 'year' ? 'Calendar Overview' :
-             view === 'month' ? `${monthNames[selectedMonth]} ${selectedYear}` :
              `${monthNames[selectedMonth]} ${selectedYear}`}
           </h2>
         </div>
         
         <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setIsMyTasksMode(!isMyTasksMode)}
+            className={`px-3 py-2 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+              isMyTasksView 
+                ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
+                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            {isMyTasksView ? 'All Tasks' : 'My Tasks'}
+          </button>
+          
           <button
             onClick={navigateToToday}
             className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -420,7 +426,7 @@ const EnhancedCalendar = ({ view: propView }) => {
       )}
 
       {/* Days View - Show calendar for selected month */}
-      {(view === 'days' || view === 'my-tasks') && (
+      {view === 'days' && (
         <div className="bg-white rounded-lg shadow">
           {/* Month header */}
           <div className="flex items-center justify-center px-6 py-4 border-b border-gray-200">
