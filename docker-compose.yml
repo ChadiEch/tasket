@@ -4,7 +4,6 @@ services:
   # PostgreSQL Database
   db:
     image: postgres:14
-    container_name: tasket_db
     restart: always
     environment:
       POSTGRES_DB: tasket
@@ -21,7 +20,6 @@ services:
     build:
       context: ./tasket-backend
       dockerfile: Dockerfile
-    container_name: tasket_backend
     restart: always
     ports:
       - "5002:5002"
@@ -34,19 +32,19 @@ services:
       - DB_NAME=tasket
       - DB_USER=postgres
       - DB_PASSWORD=postgres
+      - UPLOADS_DIR=/app/persistent_uploads
+      - NODE_ENV=production
     depends_on:
       - db
     volumes:
-      - ./tasket-backend:/app
-      - /app/node_modules
-      - ./tasket-backend/persistent_uploads:/app/persistent_uploads
+      # Replace the bind mounts with named volume for Railway
+      - persistent_uploads:/app/persistent_uploads
 
   # Frontend
   frontend:
     build:
       context: ./tasket
       dockerfile: Dockerfile.frontend
-    container_name: tasket_frontend
     restart: always
     ports:
       - "3000:3000"
@@ -55,10 +53,11 @@ services:
       - VITE_WS_BASE_URL=http://localhost:5002
     depends_on:
       - backend
-    volumes:
-      - ./tasket/src:/app/src
-      - ./tasket/public:/app/public
-      - /app/node_modules
+    # Remove bind mounts for Railway deployment
+    # volumes are not needed for frontend in Railway
 
 volumes:
   postgres_data:
+  # Add the named volume for persistent uploads
+  persistent_uploads:
+    driver: local
