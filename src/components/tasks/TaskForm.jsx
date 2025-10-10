@@ -66,6 +66,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
   const [attachmentFileMap, setAttachmentFileMap] = useState({}); // Map attachment IDs to files
   const [uploadProgress, setUploadProgress] = useState(0); // For tracking upload progress
   const [isUploading, setIsUploading] = useState(false); // For showing upload state
+  const [isCreating, setIsCreating] = useState(false); // For showing general task creation loading
 
   // Reset form when task changes
   useEffect(() => {
@@ -223,6 +224,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
     
     try {
       setErrors({ title: '', assigned_to: '', estimated_hours: '', general: '' }); // Clear previous errors
+      setIsCreating(true); // Show loading modal for task creation
     
       // Prepare data with proper type conversion
       const taskData = {
@@ -331,6 +333,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
       setAttachmentFileMap({});
       setNewAttachment({ type: 'link', url: '', name: '' });
       setIsUploading(false);
+      setIsCreating(false); // Hide loading modal
       
       onClose();
     } catch (error) {
@@ -342,6 +345,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
         setErrors(prev => ({ ...prev, general: 'Failed to save task. Please try again.' }));
       }
       setIsUploading(false);
+      setIsCreating(false); // Hide loading modal
     }
   };
 
@@ -392,7 +396,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600"
-              disabled={isUploading}
+              disabled={isUploading || isCreating}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -412,6 +416,33 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                   className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300 ease-in-out" 
                   style={{ width: `${uploadProgress}%` }}
                 ></div>
+              </div>
+            </div>
+          )}
+          
+          {/* Loading Modal */}
+          {(isCreating || isUploading) && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl">
+                <div className="flex flex-col items-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    {isUploading ? 'Uploading Attachments...' : 'Creating Task...'}
+                  </h3>
+                  <p className="text-sm text-gray-500 text-center">
+                    {isUploading 
+                      ? `Uploading files... ${uploadProgress}%` 
+                      : 'Please wait while we create your task.'}
+                  </p>
+                  {isUploading && (
+                    <div className="w-full bg-gray-200 rounded-full h-2 mt-4">
+                      <div 
+                        className="bg-indigo-600 h-2 rounded-full transition-all duration-300 ease-in-out" 
+                        style={{ width: `${uploadProgress}%` }}
+                      ></div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -777,7 +808,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                   type="button"
                   onClick={onClose}
                   className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
-                  disabled={isUploading}
+                  disabled={isUploading || isCreating}
                 >
                   {canEdit ? 'Cancel' : 'Close'}
                 </button>
@@ -785,19 +816,19 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                   <button
                     type="submit"
                     className={`px-4 py-2 rounded-md focus:outline-none focus:ring-2 text-sm ${
-                      isUploading
+                      isUploading || isCreating
                         ? 'bg-indigo-400 text-white cursor-not-allowed'
                         : 'bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500'
                     }`}
-                    disabled={isUploading}
+                    disabled={isUploading || isCreating}
                   >
-                    {isUploading ? (
+                    {isUploading || isCreating ? (
                       <span className="flex items-center">
                         <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        Uploading...
+                        {isUploading ? 'Uploading...' : 'Creating...'}
                       </span>
                     ) : (
                       isEditing ? 'Update' : 'Create'
