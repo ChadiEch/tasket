@@ -22,7 +22,7 @@ const removeAuthToken = () => {
   localStorage.removeItem('authToken');
 };
 
-// API request helper with authentication
+// API request helper with authentication and progress tracking
 const apiRequest = async (endpoint, options = {}) => {
   const token = getAuthToken();
   const config = {
@@ -50,45 +50,96 @@ const apiRequest = async (endpoint, options = {}) => {
     body: config.body instanceof FormData ? 'FormData' : config.body
   });
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-  
-  // Log the response for debugging
-  console.log('API Response:', {
-    url: `${API_BASE_URL}${endpoint}`,
-    status: response.status,
-    ok: response.ok
-  });
-  
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Network error' }));
+  // For progress tracking, we need to use XMLHttpRequest instead of fetch
+  if (config.onUploadProgress) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      
+      // Set up progress tracking
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const percentComplete = Math.round((event.loaded / event.total) * 100);
+          config.onUploadProgress(percentComplete);
+        }
+      });
+      
+      // Handle response
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const response = JSON.parse(xhr.responseText);
+            resolve(response);
+          } catch (e) {
+            reject(new Error('Failed to parse response'));
+          }
+        } else {
+          try {
+            const error = JSON.parse(xhr.responseText);
+            reject(new Error(error.message || `HTTP error! status: ${xhr.status}`));
+          } catch (e) {
+            reject(new Error(`HTTP error! status: ${xhr.status}`));
+          }
+        }
+      });
+      
+      xhr.addEventListener('error', () => {
+        reject(new Error('Network error'));
+      });
+      
+      // Open and send request
+      xhr.open(config.method || 'GET', `${API_BASE_URL}${endpoint}`);
+      
+      // Set headers
+      if (config.headers) {
+        Object.keys(config.headers).forEach(key => {
+          xhr.setRequestHeader(key, config.headers[key]);
+        });
+      }
+      
+      xhr.send(config.body);
+    });
+  } else {
+    // Use fetch for requests without progress tracking
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
     
-    // Log the error for debugging
-    console.error('API Error:', {
+    // Log the response for debugging
+    console.log('API Response:', {
       url: `${API_BASE_URL}${endpoint}`,
       status: response.status,
-      error: error
+      ok: response.ok
     });
     
-    // Handle validation errors from express-validator
-    if (error.errors && Array.isArray(error.errors)) {
-      const errorMessages = error.errors.map(e => e.msg || e.message).join(', ');
-      throw new Error(errorMessages);
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Network error' }));
+      
+      // Log the error for debugging
+      console.error('API Error:', {
+        url: `${API_BASE_URL}${endpoint}`,
+        status: response.status,
+        error: error
+      });
+      
+      // Handle validation errors from express-validator
+      if (error.errors && Array.isArray(error.errors)) {
+        const errorMessages = error.errors.map(e => e.msg || e.message).join(', ');
+        throw new Error(errorMessages);
+      }
+      
+      // Handle single error message
+      if (error.message) {
+        throw new Error(error.message);
+      }
+      
+      // Handle generic "invalid value" errors
+      if (response.status === 400) {
+        throw new Error('Invalid value provided for one or more fields. Please check your input and try again.');
+      }
+      
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
-    // Handle single error message
-    if (error.message) {
-      throw new Error(error.message);
-    }
-    
-    // Handle generic "invalid value" errors
-    if (response.status === 400) {
-      throw new Error('Invalid value provided for one or more fields. Please check your input and try again.');
-    }
-    
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
 
-  return response.json();
+    return response.json();
+  }
 };
 
 // Authentication API
@@ -181,7 +232,7 @@ export const tasksAPI = {
     return apiRequest(`/tasks/${id}`);
   },
 
-  createTask: async (taskData, files = []) => {
+  createTask: async (taskData, files = [], onUploadProgress) => {
     // Check if we have files to upload
     if (files && files.length > 0) {
       // Handle file upload with FormData
@@ -217,10 +268,17 @@ export const tasksAPI = {
       
       // For FormData requests, we don't set Content-Type header
       // Browser will set it with boundary automatically
-      return apiRequest('/tasks', {
+      const config = {
         method: 'POST',
         body: formData,
-      });
+      };
+      
+      // Add progress callback if provided
+      if (onUploadProgress) {
+        config.onUploadProgress = onUploadProgress;
+      }
+      
+      return apiRequest('/tasks', config);
     } else {
       // Ensure required fields are properly formatted
       const formattedData = {
@@ -248,7 +306,7 @@ export const tasksAPI = {
     }
   },
 
-  updateTask: async (id, taskData, files = []) => {
+  updateTask: async (id, taskData, files = [], onUploadProgress) => {
     // Check if we have files to upload
     if (files && files.length > 0) {
       // Handle file upload with FormData
@@ -284,10 +342,17 @@ export const tasksAPI = {
       
       // For FormData requests, we don't set Content-Type header
       // Browser will set it with boundary automatically
-      return apiRequest(`/tasks/${id}`, {
+      const config = {
         method: 'PUT',
         body: formData,
-      });
+      };
+      
+      // Add progress callback if provided
+      if (onUploadProgress) {
+        config.onUploadProgress = onUploadProgress;
+      }
+      
+      return apiRequest(`/tasks/${id}`, config);
     } else {
       // Ensure estimated_hours is properly formatted
       const formattedData = {

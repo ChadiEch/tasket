@@ -64,6 +64,8 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
   const [newAttachment, setNewAttachment] = useState({ type: 'link', url: '', name: '' });
   const [attachmentFiles, setAttachmentFiles] = useState([]); // For file attachments
   const [attachmentFileMap, setAttachmentFileMap] = useState({}); // Map attachment IDs to files
+  const [uploadProgress, setUploadProgress] = useState(0); // For tracking upload progress
+  const [isUploading, setIsUploading] = useState(false); // For showing upload state
 
   // Reset form when task changes
   useEffect(() => {
@@ -281,10 +283,14 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
       if (isEditing) {
         // For updates with file attachments, we need to use the API directly
         if (filesToUpload.length > 0) {
+          setIsUploading(true);
+          setUploadProgress(0);
           result = await tasksAPI.updateTask(task.id, {
             ...taskData,
             attachments: attachmentsForSubmission
-          }, filesToUpload); // Pass files to be uploaded
+          }, filesToUpload, (progress) => {
+            setUploadProgress(progress);
+          }); // Pass files to be uploaded and progress callback
           
           // Update the context state with the updated task
           // We already have the updated task from our direct API call,
@@ -298,10 +304,14 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
       } else {
         // For creation with file attachments, we need to use the API directly
         if (filesToUpload.length > 0) {
+          setIsUploading(true);
+          setUploadProgress(0);
           result = await tasksAPI.createTask({
             ...taskData,
             attachments: attachmentsForSubmission
-          }, filesToUpload); // Pass files to be uploaded
+          }, filesToUpload, (progress) => {
+            setUploadProgress(progress);
+          }); // Pass files to be uploaded and progress callback
           
           // Add the new task to the context state
           if (result.task) {
@@ -320,6 +330,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
       // Clear attachment file map and new attachment state
       setAttachmentFileMap({});
       setNewAttachment({ type: 'link', url: '', name: '' });
+      setIsUploading(false);
       
       onClose();
     } catch (error) {
@@ -330,6 +341,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
       } else {
         setErrors(prev => ({ ...prev, general: 'Failed to save task. Please try again.' }));
       }
+      setIsUploading(false);
     }
   };
 
@@ -380,12 +392,29 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600"
+              disabled={isUploading}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
+          
+          {/* Upload Progress Bar */}
+          {isUploading && (
+            <div className="mb-4">
+              <div className="flex justify-between mb-1">
+                <span className="text-sm font-medium text-indigo-700">Uploading attachments...</span>
+                <span className="text-sm font-medium text-indigo-700">{uploadProgress}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div 
+                  className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300 ease-in-out" 
+                  style={{ width: `${uploadProgress}%` }}
+                ></div>
+              </div>
+            </div>
+          )}
           
           <form onSubmit={handleSubmit} className="space-y-4">
             {errors.general && (
@@ -402,8 +431,8 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                 name="title"
                 value={formData.title}
                 onChange={handleChange}
-                disabled={!canEdit}
-                className={`w-full p-2 border rounded-md ${errors.title ? 'border-red-500' : 'border-gray-300'} ${!canEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                disabled={!canEdit || isUploading}
+                className={`w-full p-2 border rounded-md ${errors.title ? 'border-red-500' : 'border-gray-300'} ${!canEdit || isUploading ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 placeholder="Enter task title"
               />
               {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
@@ -417,8 +446,8 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                   name="assigned_to"
                   value={formData.assigned_to || ''}
                   onChange={handleChange}
-                  disabled={!canEdit}
-                  className={`w-full p-2 border rounded-md ${errors.assigned_to ? 'border-red-500' : 'border-gray-300'} ${!canEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                  disabled={!canEdit || isUploading}
+                  className={`w-full p-2 border rounded-md ${errors.assigned_to ? 'border-red-500' : 'border-gray-300'} ${!canEdit || isUploading ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 >
                   <option value="">Unassigned</option>
                   {employees.map(employee => (
@@ -447,9 +476,9 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
-                disabled={!canEdit}
+                disabled={!canEdit || isUploading}
                 rows={3}
-                className={`w-full p-2 border rounded-md border-gray-300 ${!canEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                className={`w-full p-2 border rounded-md border-gray-300 ${!canEdit || isUploading ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 placeholder="Enter task description"
               ></textarea>
             </div>
@@ -463,8 +492,8 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                   name="due_date"
                   value={formData.due_date}
                   onChange={handleChange}
-                  disabled={!canEdit}
-                  className={`w-full p-2 border rounded-md border-gray-300 ${!canEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                  disabled={!canEdit || isUploading}
+                  className={`w-full p-2 border rounded-md border-gray-300 ${!canEdit || isUploading ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 />
               </div>
               
@@ -478,8 +507,8 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                     name="created_at"
                     value={formData.created_at}
                     onChange={handleChange}
-                    disabled={!canEdit}
-                    className={`w-full p-2 border rounded-md border-gray-300 ${!canEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                    disabled={!canEdit || isUploading}
+                    className={`w-full p-2 border rounded-md border-gray-300 ${!canEdit || isUploading ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                   />
                 </div>
               )}
@@ -494,8 +523,8 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                   name="estimated_hours"
                   value={formData.estimated_hours}
                   onChange={handleChange}
-                  disabled={!canEdit}
-                  className={`w-full p-2 border rounded-md ${errors.estimated_hours ? 'border-red-500' : 'border-gray-300'} ${!canEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                  disabled={!canEdit || isUploading}
+                  className={`w-full p-2 border rounded-md ${errors.estimated_hours ? 'border-red-500' : 'border-gray-300'} ${!canEdit || isUploading ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                   placeholder="Hours"
                   required
                 />
@@ -512,8 +541,8 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                     name="priority"
                     value={formData.priority}
                     onChange={handleChange}
-                    disabled={!canEdit}
-                    className={`w-full p-2 pl-8 border rounded-md border-gray-300 appearance-none ${!canEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                    disabled={!canEdit || isUploading}
+                    className={`w-full p-2 pl-8 border rounded-md border-gray-300 appearance-none ${!canEdit || isUploading ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                   >
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
@@ -562,8 +591,8 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                   name="status"
                   value={formData.status}
                   onChange={handleChange}
-                  disabled={!canEdit}
-                  className={`w-full p-2 border rounded-md border-gray-300 ${!canEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                  disabled={!canEdit || isUploading}
+                  className={`w-full p-2 border rounded-md border-gray-300 ${!canEdit || isUploading ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 >
                   <option value="planned">Planned</option>
                   <option value="in-progress">In Progress</option>
@@ -590,6 +619,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                     name="type"
                     value={newAttachment.type}
                     onChange={handleAttachmentChange}
+                    disabled={!canEdit || isUploading}
                     className="p-2 border rounded-md border-gray-300"
                   >
                     <option value="link">Link</option>
@@ -606,6 +636,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                         value={newAttachment.url}
                         onChange={handleAttachmentChange}
                         placeholder="Enter URL"
+                        disabled={!canEdit || isUploading}
                         className="p-2 border rounded-md border-gray-300"
                       />
                       <input
@@ -614,18 +645,28 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                         value={newAttachment.name}
                         onChange={handleAttachmentChange}
                         placeholder="Link name (optional)"
+                        disabled={!canEdit || isUploading}
                         className="p-2 border rounded-md border-gray-300"
                       />
                       <button
                         type="button"
                         onClick={addAttachment}
-                        className="bg-indigo-600 text-white px-3 py-2 rounded-md hover:bg-indigo-700 text-sm"
+                        disabled={!canEdit || isUploading}
+                        className={`px-3 py-2 rounded-md text-sm ${
+                          !canEdit || isUploading 
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                            : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                        }`}
                       >
                         Add Link
                       </button>
                     </>
                   ) : (
-                    <label className="bg-white text-gray-700 px-3 py-2 border border-gray-300 rounded-md cursor-pointer text-center text-sm">
+                    <label className={`px-3 py-2 border rounded-md cursor-pointer text-center text-sm ${
+                      !canEdit || isUploading 
+                        ? 'bg-gray-200 text-gray-500 border-gray-300 cursor-not-allowed' 
+                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                    }`}>
                       <span>Choose Files (Multiple Selection Allowed)</span>
                       <input
                         type="file"
@@ -637,6 +678,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                           '.pdf,.doc,.docx'
                         }
                         multiple // Allow multiple file selection
+                        disabled={!canEdit || isUploading}
                       />
                     </label>
                   )}
@@ -694,7 +736,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                         type="button"
                         onClick={() => removeAttachment(attachment.id)}
                         className="text-red-500 hover:text-red-700"
-                        disabled={!canEdit}
+                        disabled={!canEdit || isUploading}
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -724,6 +766,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                   type="button"
                   onClick={handleDelete}
                   className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+                  disabled={isUploading}
                 >
                   Delete
                 </button>
@@ -734,15 +777,31 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                   type="button"
                   onClick={onClose}
                   className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+                  disabled={isUploading}
                 >
                   {canEdit ? 'Cancel' : 'Close'}
                 </button>
                 {canEdit && (
                   <button
                     type="submit"
-                    className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                    className={`px-4 py-2 rounded-md focus:outline-none focus:ring-2 text-sm ${
+                      isUploading
+                        ? 'bg-indigo-400 text-white cursor-not-allowed'
+                        : 'bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500'
+                    }`}
+                    disabled={isUploading}
                   >
-                    {isEditing ? 'Update' : 'Create'}
+                    {isUploading ? (
+                      <span className="flex items-center">
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Uploading...
+                      </span>
+                    ) : (
+                      isEditing ? 'Update' : 'Create'
+                    )}
                   </button>
                 )}
               </div>
