@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext'
 import TaskDetail from './tasks/TaskDetail'
 import DeleteConfirmationDialog from './tasks/DeleteConfirmationDialog'
 
-const EnhancedCalendar = () => {
+const EnhancedCalendar = ({ view: propView }) => {
   const { tasks, navigateToDayView, selectedEmployee, navigateToCalendar, currentUser, isAdmin, deleteTask } = useApp()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState('year') // 'year', 'month', or 'days'
@@ -33,6 +33,13 @@ const EnhancedCalendar = () => {
       return () => clearTimeout(timer);
     }
   }, [taskToView, tasks]);
+
+  // Set view based on prop
+  useEffect(() => {
+    if (propView === 'my-tasks') {
+      setView('my-tasks');
+    }
+  }, [propView]);
 
   // Generate years for selection (10 years before and after current year)
   const generateYears = () => {
@@ -83,7 +90,7 @@ const EnhancedCalendar = () => {
     // For "My Tasks" view, filter by current user
     if (selectedEmployee) {
       filteredTasks = filteredTasks.filter(task => task.assigned_to === selectedEmployee.id)
-    } else if (window.location.pathname.includes('my-tasks-calendar') || view === 'my-tasks') {
+    } else if (propView === 'my-tasks' || view === 'my-tasks') {
       // Filter by current user for "My Tasks" view
       filteredTasks = filteredTasks.filter(task => task.assigned_to === currentUser?.id)
     }
@@ -114,7 +121,7 @@ const EnhancedCalendar = () => {
   }
 
   const getTasksForDay = (day) => {
-    if (!day || view !== 'days') return []
+    if (!day || (view !== 'days' && view !== 'my-tasks')) return []
     
     // Create date for the specific day using local timezone
     const targetDate = new Date(selectedYear, selectedMonth, day)
@@ -150,7 +157,7 @@ const EnhancedCalendar = () => {
     // For "My Tasks" view, filter by current user
     if (selectedEmployee) {
       filteredTasks = filteredTasks.filter(task => task.assigned_to === selectedEmployee.id)
-    } else if (window.location.pathname.includes('my-tasks-calendar') || view === 'my-tasks') {
+    } else if (propView === 'my-tasks' || view === 'my-tasks') {
       // Filter by current user for "My Tasks" view
       filteredTasks = filteredTasks.filter(task => task.assigned_to === currentUser?.id)
     }
@@ -298,7 +305,7 @@ const EnhancedCalendar = () => {
   window.openTaskFromNotification = openTaskFromNotification;
 
   // Check if we're in "My Tasks" view
-  const isMyTasksView = window.location.pathname.includes('my-tasks-calendar') || view === 'my-tasks';
+  const isMyTasksView = propView === 'my-tasks' || view === 'my-tasks';
 
   return (
     <div className="p-6">
@@ -410,7 +417,7 @@ const EnhancedCalendar = () => {
       )}
 
       {/* Days View - Show calendar for selected month */}
-      {view === 'days' && (
+      {(view === 'days' || view === 'my-tasks') && (
         <div className="bg-white rounded-lg shadow">
           {/* Month header */}
           <div className="flex items-center justify-center px-6 py-4 border-b border-gray-200">

@@ -38,6 +38,12 @@ const Sidebar = () => {
       onClick: () => navigateTo('calendar')
     },
     { 
+      name: 'My Tasks', 
+      key: 'my-tasks',
+      icon: 'clipboard-list', 
+      onClick: () => navigateTo('my-tasks')
+    },
+    { 
       name: 'Notifications', 
       key: 'notifications',
       icon: 'bell', 

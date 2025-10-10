@@ -269,6 +269,11 @@ const TrashPage = () => {
                             <p className="truncate">{task.description}</p>
                           </div>
                         )}
+                        {task.assignedToEmployee && (
+                          <div className="mt-1 text-sm text-gray-500">
+                            <p>Assigned to: {task.assignedToEmployee.name}</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="ml-4 flex-shrink-0 flex space-x-2">
