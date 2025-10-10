@@ -4,16 +4,17 @@ This document explains how the "Created At" field works for admin users in the T
 
 ## Overview
 
-Admin users now have the ability to manually set the "Created At" date and time when creating or editing tasks. This feature is useful for backdating tasks or setting specific creation timestamps.
+Admin users now have the ability to manually set the "Created At" date and time when creating or editing tasks. This feature is useful for backdating tasks or setting specific creation timestamps. When creating a new task from the DayView, the "Created At" field is automatically initialized with the selected date.
 
 ## How It Works
 
 ### Frontend (TaskForm Component)
 
 1. When an admin user opens the task form, they will see a new "Created At" field in the form
-2. The field is pre-filled with the current date and time
-3. Admins can modify this field to any valid date and time
-4. The field is only visible to admin users
+2. For new tasks, the field is pre-filled with the selected date from the DayView (with the current time)
+3. For existing tasks, the field shows the task's actual creation timestamp
+4. Admins can modify this field to any valid date and time
+5. The field is only visible to admin users
 
 ### Backend (Task Controller)
 
@@ -29,6 +30,8 @@ Admin users now have the ability to manually set the "Created At" date and time 
 1. Added a `created_at` field to the form state in TaskForm.jsx
 2. Added a datetime-local input field that is only visible to admin users
 3. Added helper functions to format dates properly for the input field
+4. Added logic to initialize the "Created At" field with the selected date when creating new tasks from DayView
+5. Added a `getDateTimeForSelectedDate` function that creates a datetime string for the selected date with the current time
 
 ### Backend Changes
 
@@ -40,16 +43,19 @@ Admin users now have the ability to manually set the "Created At" date and time 
 
 ### Creating a Task with Custom Created At Date
 
-1. As an admin, open the "Add Task" form
-2. Fill in the task details as usual
-3. Modify the "Created At" field to the desired date and time
-4. Submit the form
+1. As an admin, navigate to the DayView for a specific date
+2. Click "Add Task" to open the task form
+3. The "Created At" field will be pre-filled with the selected date and current time
+4. Modify the "Created At" field to any desired date and time
+5. Fill in other task details as needed
+6. Submit the form
 
 ### Editing a Task's Created At Date
 
 1. As an admin, open the "Edit Task" form for an existing task
-2. Modify the "Created At" field to the desired date and time
-3. Submit the form
+2. The "Created At" field will show the task's current creation timestamp
+3. Modify the "Created At" field to the desired date and time
+4. Submit the form
 
 ## Validation
 
@@ -71,6 +77,7 @@ An admin might use this feature to:
 - Backdate a task that was completed offline
 - Set a specific creation time for reporting purposes
 - Match the creation timestamp with an external system
+- When creating a task in the DayView for a past date, the creation timestamp will automatically be set to that date
 
 ## Limitations
 
