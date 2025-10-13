@@ -149,11 +149,15 @@ const Calendar = () => {
       // Call the new dedicated function to update only the created_at field
       const result = await updateTaskCreatedAt(draggedTask.id, formattedDate);
       
+      console.log('Update task created_at result:', result);
+      
       if (result.error) {
         console.error('Error updating task created_at:', result.error);
         alert('Failed to move task. Please try again.');
       } else {
         console.log('Task moved successfully:', result.task);
+        // Log the new created_at value
+        console.log('New created_at value:', result.task.created_at);
       }
     } catch (error) {
       console.error('Error moving task:', error);

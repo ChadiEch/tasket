@@ -392,7 +392,7 @@ export const tasksAPI = {
       created_at: createdAtDate
     };
     
-    return apiRequest(`/tasks/${id}`, {
+    return apiRequest(`/tasks/${id}/created-at`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
