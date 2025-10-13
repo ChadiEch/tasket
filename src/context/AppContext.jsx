@@ -525,11 +525,10 @@ export const AppProvider = ({ children }) => {
         // Parse the date with timezone awareness
         const taskCreatedDate = new Date(task.created_at);
         
-        // Extract date part using UTC to match backend storage
-        // This ensures we compare the actual calendar date, not the local time representation
-        const taskYear = taskCreatedDate.getUTCFullYear();
-        const taskMonth = String(taskCreatedDate.getUTCMonth() + 1).padStart(2, '0');
-        const taskDay = String(taskCreatedDate.getUTCDate()).padStart(2, '0');
+        // Extract date part using local time to match how dates are displayed in the UI
+        const taskYear = taskCreatedDate.getFullYear();
+        const taskMonth = String(taskCreatedDate.getMonth() + 1).padStart(2, '0');
+        const taskDay = String(taskCreatedDate.getDate()).padStart(2, '0');
         taskDateStr = `${taskYear}-${taskMonth}-${taskDay}`;
         
         return taskDateStr === targetDateStr;

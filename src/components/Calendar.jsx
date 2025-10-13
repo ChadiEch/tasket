@@ -51,11 +51,10 @@ const Calendar = () => {
         // Parse the date with timezone awareness
         const taskCreatedDate = new Date(task.created_at)
         
-        // Extract date part using UTC to match backend storage
-        // This ensures we compare the actual calendar date, not the local time representation
-        const taskYear = taskCreatedDate.getUTCFullYear()
-        const taskMonth = String(taskCreatedDate.getUTCMonth() + 1).padStart(2, '0')
-        const taskDay = String(taskCreatedDate.getUTCDate()).padStart(2, '0')
+        // Extract date part using local time to match how dates are displayed in the UI
+        const taskYear = taskCreatedDate.getFullYear()
+        const taskMonth = String(taskCreatedDate.getMonth() + 1).padStart(2, '0')
+        const taskDay = String(taskCreatedDate.getDate()).padStart(2, '0')
         taskDateStr = `${taskYear}-${taskMonth}-${taskDay}`
         
         return taskDateStr === targetDateStr
@@ -130,23 +129,20 @@ const Calendar = () => {
     e.preventDefault();
     if (!isAdmin || !draggedTask || !day) return;
     
-    // Calculate the new date using UTC to avoid timezone issues
-    // Create a date string in YYYY-MM-DD format directly
+    // Create a date string for the target day (this ensures we keep the correct calendar day)
     const year = currentYear;
     const month = String(currentMonth + 1).padStart(2, '0'); // Months are 0-indexed
     const dayStr = String(day).padStart(2, '0');
-    const dateString = `${year}-${month}-${dayStr}`;
+    const targetDateStr = `${year}-${month}-${dayStr}`;
     
-    // Create a date object for the start of the day in local time
-    const newDate = new Date(currentYear, currentMonth, day, 0, 0, 0, 0);
-    
-    // Format the date to ISO string for the backend, but ensure it represents the correct day
-    // We'll use the date string to create a proper UTC date
-    const formattedDate = newDate.toISOString();
+    // Create the date string for the backend in a way that preserves the calendar day
+    // We'll create a date at noon to avoid timezone conversion issues
+    const targetDate = new Date(currentYear, currentMonth, day, 12, 0, 0);
+    const formattedDate = targetDate.toISOString();
     
     console.log('Moving task:', draggedTask.id);
-    console.log('Target date string:', dateString);
-    console.log('New date (local):', newDate);
+    console.log('Target date string:', targetDateStr);
+    console.log('Target date (noon):', targetDate);
     console.log('Formatted date for backend:', formattedDate);
     
     try {
