@@ -1,9 +1,12 @@
 import React, { useState } from 'react'
 import { useApp } from '../context/AppContext'
+import DraggableTaskItem from './DraggableTaskItem'
 
 const Calendar = () => {
-  const { tasks, navigateToDayView, selectedEmployee, user, isAdmin } = useApp()
+  const { tasks, navigateToDayView, selectedEmployee, user, isAdmin, updateTask } = useApp()
   const [currentDate, setCurrentDate] = useState(new Date())
+  const [draggedTask, setDraggedTask] = useState(null) // State for dragged task
+  const [dropTarget, setDropTarget] = useState(null) // State for drop target
 
   const today = new Date()
   const currentMonth = currentDate.getMonth()
@@ -83,6 +86,80 @@ const Calendar = () => {
     })
   }
 
+  // Handle drag start
+  const handleDragStart = (e, task) => {
+    if (!isAdmin) return;
+    setDraggedTask(task);
+    e.dataTransfer.effectAllowed = 'move';
+    // Set drag image to improve UX
+    const dragImage = document.createElement('div');
+    dragImage.style.position = 'absolute';
+    dragImage.style.top = '-1000px';
+    dragImage.textContent = task.title;
+    dragImage.className = 'bg-blue-500 text-white px-2 py-1 rounded text-sm';
+    document.body.appendChild(dragImage);
+    e.dataTransfer.setDragImage(dragImage, 0, 0);
+    setTimeout(() => document.body.removeChild(dragImage), 0);
+  };
+
+  // Handle drag end
+  const handleDragEnd = () => {
+    setDraggedTask(null);
+    setDropTarget(null);
+  };
+
+  // Handle drag over
+  const handleDragOver = (e, day) => {
+    if (!isAdmin || !day || !draggedTask) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDropTarget(day);
+  };
+
+  // Handle drag leave
+  const handleDragLeave = (e) => {
+    // Only clear drop target if we're leaving the calendar day cell
+    if (e.target.classList.contains('min-h-[60px]') || e.target.classList.contains('min-h-[80px]')) {
+      setDropTarget(null);
+    }
+  };
+
+  // Handle drop
+  const handleDrop = async (e, day) => {
+    e.preventDefault();
+    if (!isAdmin || !draggedTask || !day) return;
+    
+    // Calculate the new date
+    const newDate = new Date(currentYear, currentMonth, day);
+    
+    // Format the date to YYYY-MM-DD for the backend
+    const formattedDate = newDate.toISOString().split('T')[0];
+    
+    try {
+      // Update the task's created_at date
+      const updatedTaskData = {
+        ...draggedTask,
+        created_at: formattedDate
+      };
+      
+      // Call the updateTask function from context
+      const result = await updateTask(draggedTask.id, updatedTaskData);
+      
+      if (result.error) {
+        console.error('Error updating task:', result.error);
+        alert('Failed to move task. Please try again.');
+      } else {
+        console.log('Task moved successfully');
+      }
+    } catch (error) {
+      console.error('Error moving task:', error);
+      alert('Failed to move task. Please try again.');
+    } finally {
+      setDraggedTask(null);
+      setDropTarget(null);
+    }
+  };
+
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
@@ -142,17 +219,27 @@ const Calendar = () => {
               currentYear === today.getFullYear() && 
               currentMonth === today.getMonth() && 
               day === today.getDate()
+            const isDropTarget = day === dropTarget
 
             return (
               <div
                 key={index}
                 onClick={() => handleDayClick(day)}
+                onDragOver={(e) => day && handleDragOver(e, day)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => day && handleDrop(e, day)}
                 className={`
-                  min-h-[60px] md:min-h-[80px] p-1 md:p-2 border border-gray-100 cursor-pointer hover:bg-gray-50 touch-manipulation
+                  min-h-[60px] md:min-h-[80px] p-1 md:p-2 border border-gray-100 cursor-pointer hover:bg-gray-50 touch-manipulation relative
                   ${day ? 'bg-white' : 'bg-gray-50'}
                   ${isToday ? 'bg-blue-50 border-blue-200' : ''}
+                  ${isDropTarget && isAdmin && draggedTask ? 'bg-blue-100 border-blue-400 ring-2 ring-blue-200' : ''}
                 `}
               >
+                {day && isDropTarget && isAdmin && draggedTask && (
+                  <div className="absolute top-0 right-0 bg-blue-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] md:w-5 md:h-5 md:text-xs">
+                    ↓
+                  </div>
+                )}
                 {day && (
                   <>
                     <div className={`text-xs md:text-sm font-medium ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
@@ -162,17 +249,15 @@ const Calendar = () => {
                       <div className="mt-1 space-y-1">
                         {/* Show fewer tasks on mobile */ }
                         {dayTasks.slice(0, window.innerWidth < 768 ? 1 : 2).map(task => (
-                          <div
-                            key={task.id}
-                            className={`text-xs px-1 md:px-2 py-0.5 md:py-1 rounded truncate ${
-                              task.priority === 'high' || task.priority === 'urgent'
-                                ? 'bg-red-100 text-red-800'
-                                : task.status === 'completed'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-blue-100 text-blue-800'
-                            }`}
-                          >
-                            {task.title}
+                          <div key={task.id} className="relative group">
+                            <DraggableTaskItem
+                              task={task}
+                              isAdmin={isAdmin}
+                              onTaskClick={handleDayClick}
+                              onDragStart={handleDragStart}
+                              onDragEnd={handleDragEnd}
+                              isDragging={draggedTask && draggedTask.id === task.id}
+                            />
                           </div>
                         ))}
                         {dayTasks.length > (window.innerWidth < 768 ? 1 : 2) && (

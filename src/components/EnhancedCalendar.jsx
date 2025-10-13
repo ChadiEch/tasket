@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import TaskDetail from './tasks/TaskDetail'
 import DeleteConfirmationDialog from './tasks/DeleteConfirmationDialog'
+import DraggableTaskItem from './DraggableTaskItem'
 
 const EnhancedCalendar = ({ view: propView }) => {
-  const { tasks, navigateToDayView, selectedEmployee, navigateToCalendar, currentUser, isAdmin, deleteTask } = useApp()
+  const { tasks, navigateToDayView, selectedEmployee, navigateToCalendar, currentUser, isAdmin, deleteTask, updateTask } = useApp()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState('year') // 'year' or 'days'
   const [isMyTasksMode, setIsMyTasksMode] = useState(propView === 'my-tasks') // Whether we're filtering by current user
@@ -14,6 +15,8 @@ const EnhancedCalendar = ({ view: propView }) => {
   const [taskToView, setTaskToView] = useState(null) // For opening a specific task
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [taskToDelete, setTaskToDelete] = useState(null)
+  const [draggedTask, setDraggedTask] = useState(null) // State for dragged task
+  const [dropTarget, setDropTarget] = useState(null) // State for drop target
 
   const today = new Date()
 
@@ -299,6 +302,80 @@ const EnhancedCalendar = ({ view: propView }) => {
     setTaskToView(taskId);
   }
 
+  // Handle drag start
+  const handleDragStart = (e, task) => {
+    if (!isAdmin) return;
+    setDraggedTask(task);
+    e.dataTransfer.effectAllowed = 'move';
+    // Set drag image to improve UX
+    const dragImage = document.createElement('div');
+    dragImage.style.position = 'absolute';
+    dragImage.style.top = '-1000px';
+    dragImage.textContent = task.title;
+    dragImage.className = 'bg-blue-500 text-white px-2 py-1 rounded text-sm';
+    document.body.appendChild(dragImage);
+    e.dataTransfer.setDragImage(dragImage, 0, 0);
+    setTimeout(() => document.body.removeChild(dragImage), 0);
+  };
+
+  // Handle drag end
+  const handleDragEnd = () => {
+    setDraggedTask(null);
+    setDropTarget(null);
+  };
+
+  // Handle drag over
+  const handleDragOver = (e, day) => {
+    if (!isAdmin || !day || !draggedTask) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDropTarget(day);
+  };
+
+  // Handle drag leave
+  const handleDragLeave = (e) => {
+    // Only clear drop target if we're leaving the calendar day cell
+    if (e.target.classList.contains('min-h-24')) {
+      setDropTarget(null);
+    }
+  };
+
+  // Handle drop
+  const handleDrop = async (e, day) => {
+    e.preventDefault();
+    if (!isAdmin || !draggedTask || !day) return;
+    
+    // Calculate the new date
+    const newDate = new Date(selectedYear, selectedMonth, day);
+    
+    // Format the date to YYYY-MM-DD for the backend
+    const formattedDate = newDate.toISOString().split('T')[0];
+    
+    try {
+      // Update the task's created_at date
+      const updatedTaskData = {
+        ...draggedTask,
+        created_at: formattedDate
+      };
+      
+      // Call the updateTask function from context
+      const result = await updateTask(draggedTask.id, updatedTaskData);
+      
+      if (result.error) {
+        console.error('Error updating task:', result.error);
+        alert('Failed to move task. Please try again.');
+      } else {
+        console.log('Task moved successfully');
+      }
+    } catch (error) {
+      console.error('Error moving task:', error);
+      alert('Failed to move task. Please try again.');
+    } finally {
+      setDraggedTask(null);
+      setDropTarget(null);
+    }
+  };
+
   // Make this function available to other components through context or props
   // For now, we'll just export it as a named export
   window.openTaskFromNotification = openTaskFromNotification;
@@ -452,18 +529,33 @@ const EnhancedCalendar = ({ view: propView }) => {
                 const isCurrentDay = selectedYear === today.getFullYear() && 
                                      selectedMonth === today.getMonth() && 
                                      day === today.getDate();
+                const isDropTarget = day === dropTarget;
+
                 return (
-                  <div 
-                    key={index} 
-                    className={`min-h-24 p-2 border rounded-lg ${
-                      day ? 'cursor-pointer hover:bg-gray-50' : ''
-                    } ${
-                      isCurrentDay
+                  <div
+                    key={index}
+                    onClick={() => handleDayClick(day)}
+                    onDragOver={(e) => day && handleDragOver(e, day)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => day && handleDrop(e, day)}
+                    className={`
+                      min-h-24 p-2 border rounded-lg relative
+                      ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                      ${isCurrentDay
                         ? 'bg-blue-50 border-blue-200 ring-2 ring-blue-300'
                         : 'border-gray-200'
-                    }`}
-                    onClick={() => day && handleDayClick(day)}
+                      }
+                      ${isDropTarget && isAdmin && draggedTask
+                        ? 'bg-blue-100 border-blue-400 ring-2 ring-blue-200'
+                        : ''
+                      }
+                    `}
                   >
+                    {day && isDropTarget && isAdmin && draggedTask && (
+                      <div className="absolute top-1 right-1 bg-blue-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                        ↓
+                      </div>
+                    )}
                     {day && (
                       <>
                         <div className={`text-sm font-medium mb-1 ${
@@ -477,15 +569,14 @@ const EnhancedCalendar = ({ view: propView }) => {
                               key={task.id}
                               className="relative group"
                             >
-                              <div
-                                className="text-xs p-1 bg-indigo-100 text-indigo-800 rounded truncate cursor-pointer hover:bg-indigo-200"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openTaskView(task);
-                                }}
-                              >
-                                {task.title}
-                              </div>
+                              <DraggableTaskItem
+                                task={task}
+                                isAdmin={isAdmin}
+                                onTaskClick={openTaskView}
+                                onDragStart={handleDragStart}
+                                onDragEnd={handleDragEnd}
+                                isDragging={draggedTask && draggedTask.id === task.id}
+                              />
                               {isAdmin && (
                                 <button
                                   onClick={(e) => {
@@ -512,6 +603,7 @@ const EnhancedCalendar = ({ view: propView }) => {
                     )}
                   </div>
                 )
+
               })}
             </div>
           </div>
