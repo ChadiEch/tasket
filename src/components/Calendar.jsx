@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext'
 import DraggableTaskItem from './DraggableTaskItem'
 
 const Calendar = () => {
-  const { tasks, navigateToDayView, selectedEmployee, user, isAdmin, updateTaskCreatedAt } = useApp() // Use the new function
+  const { tasks, navigateToDayView, selectedEmployee, user, isAdmin, updateTask } = useApp() // Use updateTask instead of updateTaskCreatedAt
   const [currentDate, setCurrentDate] = useState(new Date())
   const [draggedTask, setDraggedTask] = useState(null) // State for dragged task
   const [dropTarget, setDropTarget] = useState(null) // State for drop target
@@ -146,22 +146,29 @@ const Calendar = () => {
     console.log('Formatted date for backend:', formattedDate);
     
     try {
-      // Call the new dedicated function to update only the created_at field
-      const result = await updateTaskCreatedAt(draggedTask.id, formattedDate);
+      // Use the regular updateTask function but send only the created_at field
+      const updatedTaskData = {
+        created_at: formattedDate
+      };
       
-      console.log('Update task created_at result:', result);
+      const result = await updateTask(draggedTask.id, updatedTaskData);
+      
+      console.log('Update task result:', result);
       
       if (result.error) {
-        console.error('Error updating task created_at:', result.error);
-        alert('Failed to move task. Please try again.');
+        console.error('Error updating task:', result.error);
+        // Show a more user-friendly error message
+        alert(`Failed to move task: ${result.error}`);
       } else {
         console.log('Task moved successfully:', result.task);
         // Log the new created_at value
         console.log('New created_at value:', result.task.created_at);
+        // Show success message
+        alert('Task moved successfully!');
       }
     } catch (error) {
       console.error('Error moving task:', error);
-      alert('Failed to move task. Please try again.');
+      alert(`Failed to move task: ${error.message}`);
     } finally {
       setDraggedTask(null);
       setDropTarget(null);

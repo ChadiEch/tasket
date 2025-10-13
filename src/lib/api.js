@@ -385,22 +385,6 @@ export const tasksAPI = {
     }
   },
 
-  // New function specifically for updating the created_at field when dragging tasks
-  updateTaskCreatedAt: async (id, createdAtDate) => {
-    // Send only the created_at field to update
-    const formattedData = {
-      created_at: createdAtDate
-    };
-    
-    return apiRequest(`/tasks/${id}/created-at`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: formattedData,
-    });
-  },
-
   deleteTask: async (id, action = 'delete') => {
     return apiRequest(`/tasks/${id}?action=${action}`, {
       method: 'DELETE',

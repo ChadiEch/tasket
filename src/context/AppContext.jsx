@@ -189,7 +189,8 @@ export const AppProvider = ({ children }) => {
   const updateTaskCreatedAt = async (taskId, createdAtDate) => {
     try {
       setError(null);
-      const response = await tasksAPI.updateTaskCreatedAt(taskId, createdAtDate);
+      // Use the regular updateTask function but send only the created_at field
+      const response = await tasksAPI.updateTask(taskId, { created_at: createdAtDate });
       setTasks(prev => prev.map(task => 
         task.id === taskId ? response.task : task
       ));
@@ -707,3 +708,3815 @@ export const AppProvider = ({ children }) => {
     </AppContext.Provider>
   );
 };
+
+const EnhancedCalendar = ({ view: propView }) => {
+  const { tasks, navigateToDayView, selectedEmployee, navigateToCalendar, currentUser, isAdmin, deleteTask, updateTask } = useApp() // Use updateTask instead of updateTaskCreatedAt
+  const [view, setView] = useState(propView || 'month');
+
+  const handleViewChange = (newView) => {
+    setView(newView);
+  };
+
+  const handleTaskDrag = (task, newDate) => {
+    const newTask = {
+      ...task,
+      created_at: newDate.toISOString(),
+    };
+    updateTask(task.id, newTask);
+  };
+
+  const handleTaskDelete = (taskId) => {
+    deleteTask(taskId);
+  };
+
+  return (
+    <div className="calendar-container">
+      <div className="calendar-header">
+        <button onClick={() => handleViewChange('month')}>Month</button>
+        <button onClick={() => handleViewChange('week')}>Week</button>
+        <button onClick={() => handleViewChange('day')}>Day</button>
+      </div>
+      <div className="calendar">
+        <FullCalendar
+          initialView={view}
+          events={tasks.map(task => ({
+            id: task.id,
+            title: task.title,
+            start: task.created_at,
+            end: task.due_date,
+            extendedProps: {
+              description: task.description,
+              priority: task.priority,
+              status: task.status,
+              assigned_to: task.assigned_to,
+              department_id: task.department_id,
+            },
+          }))}
+          dateClick={(info) => {
+            if (info.jsEvent.type === 'click') {
+              navigateToDayView(info.date);
+            }
+          }}
+          eventClick={(info) => {
+            if (info.jsEvent.type === 'click') {
+              navigateToDayView(info.event.start);
+            }
+          }}
+          eventDrop={(info) => {
+            handleTaskDrag(info.event.extendedProps, info.event.start);
+          }}
+          eventRemove={(info) => {
+            handleTaskDelete(info.event.id);
+          }}
+          eventContent={(renderInfo) => {
+            const task = renderInfo.event.extendedProps;
+            return (
+              <div className="task-event">
+                <div className="task-title">{task.title}</div>
+                <div className="task-description">{task.description}</div>
+                <div className="task-priority">{task.priority}</div>
+                <div className="task-status">{task.status}</div>
+                <div className="task-assigned-to">{task.assigned_to}</div>
+                <div className="task-department-id">{task.department_id}</div>
+              </div>
+            );
+          }}
+          headerToolbar={{
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay',
+          }}
+          editable={isAdmin}
+          selectable={isAdmin}
+          droppable={isAdmin}
+          eventResizableFromStart={isAdmin}
+          eventResizableFromEnd={isAdmin}
+          eventResourceEditable={isAdmin}
+          eventOverlap={isAdmin}
+          eventAllow={(dropInfo) => {
+            return dropInfo.isDragging || dropInfo.isResizing;
+          }}
+          eventDidMount={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidUnmount={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceive={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidResize={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidDrag={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveDrag={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveResize={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveDrop={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveRemove={(info) => {
+            info.el.style.backgroundColor = '';
+          }}
+          eventDidReceiveUpdate={(info) => {
+            const task = info.event.extendedProps;
+            if (task.status === 'completed') {
+              info.el.style.backgroundColor = 'green';
+            } else if (task.status === 'in-progress') {
+              info.el.style.backgroundColor = 'yellow';
+            } else if (task.status === 'overdue') {
+              info.el.style.backgroundColor = 'red';
+            }
+          }}
+          eventDidReceiveAdd={(info) => {
+            const task = info.event.extid```
+
+```
