@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext'
 import DraggableTaskItem from './DraggableTaskItem'
 
 const Calendar = () => {
-  const { tasks, navigateToDayView, selectedEmployee, user, isAdmin, updateTask } = useApp()
+  const { tasks, navigateToDayView, selectedEmployee, user, isAdmin, updateTaskCreatedAt } = useApp() // Use the new function
   const [currentDate, setCurrentDate] = useState(new Date())
   const [draggedTask, setDraggedTask] = useState(null) // State for dragged task
   const [dropTarget, setDropTarget] = useState(null) // State for drop target
@@ -145,19 +145,12 @@ const Calendar = () => {
     console.log('Target date (noon):', targetDate);
     console.log('Formatted date for backend:', formattedDate);
     
-    // Send only the created_at field to update
-    const updatedTaskData = {
-      created_at: formattedDate
-    };
-    
-    console.log('Data being sent to backend:', JSON.stringify(updatedTaskData, null, 2));
-    
     try {
-      // Call the updateTask function from context
-      const result = await updateTask(draggedTask.id, updatedTaskData);
+      // Call the new dedicated function to update only the created_at field
+      const result = await updateTaskCreatedAt(draggedTask.id, formattedDate);
       
       if (result.error) {
-        console.error('Error updating task:', result.error);
+        console.error('Error updating task created_at:', result.error);
         alert('Failed to move task. Please try again.');
       } else {
         console.log('Task moved successfully:', result.task);

@@ -5,7 +5,7 @@ import DeleteConfirmationDialog from './tasks/DeleteConfirmationDialog'
 import DraggableTaskItem from './DraggableTaskItem'
 
 const EnhancedCalendar = ({ view: propView }) => {
-  const { tasks, navigateToDayView, selectedEmployee, navigateToCalendar, currentUser, isAdmin, deleteTask, updateTask } = useApp()
+  const { tasks, navigateToDayView, selectedEmployee, navigateToCalendar, currentUser, isAdmin, deleteTask, updateTaskCreatedAt } = useApp() // Use the new function
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState('year') // 'year' or 'days'
   const [isMyTasksMode, setIsMyTasksMode] = useState(propView === 'my-tasks') // Whether we're filtering by current user
@@ -361,19 +361,12 @@ const EnhancedCalendar = ({ view: propView }) => {
     console.log('Target date (noon):', targetDate);
     console.log('Formatted date for backend:', formattedDate);
     
-    // Send only the created_at field to update
-    const updatedTaskData = {
-      created_at: formattedDate
-    };
-    
-    console.log('Data being sent to backend:', JSON.stringify(updatedTaskData, null, 2));
-    
     try {
-      // Call the updateTask function from context
-      const result = await updateTask(draggedTask.id, updatedTaskData);
+      // Call the new dedicated function to update only the created_at field
+      const result = await updateTaskCreatedAt(draggedTask.id, formattedDate);
       
       if (result.error) {
-        console.error('Error updating task:', result.error);
+        console.error('Error updating task created_at:', result.error);
         alert('Failed to move task. Please try again.');
       } else {
         console.log('Task moved successfully:', result.task);

@@ -185,6 +185,23 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // New function specifically for updating task created_at when dragging
+  const updateTaskCreatedAt = async (taskId, createdAtDate) => {
+    try {
+      setError(null);
+      const response = await tasksAPI.updateTaskCreatedAt(taskId, createdAtDate);
+      setTasks(prev => prev.map(task => 
+        task.id === taskId ? response.task : task
+      ));
+      
+      return { task: response.task, error: null };
+    } catch (error) {
+      console.error('Error updating task created_at:', error);
+      setError(error.message);
+      return { task: null, error: error.message };
+    }
+  };
+
   const deleteTask = async (taskId, action = 'delete') => {
     try {
       setError(null);
@@ -636,6 +653,7 @@ export const AppProvider = ({ children }) => {
     fetchAllData,
     createTask,
     updateTask,
+    updateTaskCreatedAt, // Add the new function
     deleteTask,
     restoreTask,
     permanentlyDeleteTask,
