@@ -354,13 +354,19 @@ export const tasksAPI = {
       
       return apiRequest(`/tasks/${id}`, config);
     } else {
-      // Ensure estimated_hours is properly formatted
-      const formattedData = {
-        ...taskData,
-        estimated_hours: taskData.estimated_hours !== undefined && taskData.estimated_hours !== null && taskData.estimated_hours !== '' ? parseFloat(taskData.estimated_hours) : 1.00,
-        // Ensure attachments is an array and filter out invalid attachments
-        attachments: Array.isArray(taskData.attachments) ? taskData.attachments.filter(att => att && att.url) : []
-      };
+      // For drag-and-drop updates, we might only want to update specific fields
+      // Don't add default values if they're not provided
+      const formattedData = { ...taskData };
+      
+      // Only format estimated_hours if it's provided
+      if (taskData.estimated_hours !== undefined && taskData.estimated_hours !== null) {
+        formattedData.estimated_hours = taskData.estimated_hours !== '' ? parseFloat(taskData.estimated_hours) : 1.00;
+      }
+      
+      // Only format attachments if they're provided
+      if (taskData.attachments !== undefined) {
+        formattedData.attachments = Array.isArray(taskData.attachments) ? taskData.attachments.filter(att => att && att.url) : [];
+      }
       
       // Remove any undefined or null values that might cause issues
       Object.keys(formattedData).forEach(key => {
