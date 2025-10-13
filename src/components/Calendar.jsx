@@ -145,13 +145,14 @@ const Calendar = () => {
     console.log('Target date (noon):', targetDate);
     console.log('Formatted date for backend:', formattedDate);
     
+    // Send only the created_at field to update
+    const updatedTaskData = {
+      created_at: formattedDate
+    };
+    
+    console.log('Data being sent to backend:', JSON.stringify(updatedTaskData, null, 2));
+    
     try {
-      // Update the task's created_at date
-      const updatedTaskData = {
-        ...draggedTask,
-        created_at: formattedDate
-      };
-      
       // Call the updateTask function from context
       const result = await updateTask(draggedTask.id, updatedTaskData);
       
