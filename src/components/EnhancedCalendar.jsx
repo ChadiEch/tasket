@@ -345,11 +345,15 @@ const EnhancedCalendar = ({ view: propView }) => {
     e.preventDefault();
     if (!isAdmin || !draggedTask || !day) return;
     
-    // Calculate the new date
-    const newDate = new Date(selectedYear, selectedMonth, day);
+    // Calculate the new date at midnight (start of the day)
+    const newDate = new Date(selectedYear, selectedMonth, day, 0, 0, 0, 0);
     
-    // Format the date to YYYY-MM-DD for the backend
-    const formattedDate = newDate.toISOString().split('T')[0];
+    // Format the date to ISO string for the backend
+    const formattedDate = newDate.toISOString();
+    
+    console.log('Moving task:', draggedTask.id);
+    console.log('New date:', newDate);
+    console.log('Formatted date for backend:', formattedDate);
     
     try {
       // Update the task's created_at date
@@ -365,7 +369,7 @@ const EnhancedCalendar = ({ view: propView }) => {
         console.error('Error updating task:', result.error);
         alert('Failed to move task. Please try again.');
       } else {
-        console.log('Task moved successfully');
+        console.log('Task moved successfully:', result.task);
       }
     } catch (error) {
       console.error('Error moving task:', error);
