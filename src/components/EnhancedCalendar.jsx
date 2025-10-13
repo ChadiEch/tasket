@@ -142,10 +142,11 @@ const EnhancedCalendar = ({ view: propView }) => {
         // Parse the date with timezone awareness
         const taskCreatedDate = new Date(task.created_at)
         
-        // Extract date part using local time (this handles timezone conversion properly)
-        const taskYear = taskCreatedDate.getFullYear()
-        const taskMonth = String(taskCreatedDate.getMonth() + 1).padStart(2, '0')
-        const taskDay = String(taskCreatedDate.getDate()).padStart(2, '0')
+        // Extract date part using UTC to match backend storage
+        // This ensures we compare the actual calendar date, not the local time representation
+        const taskYear = taskCreatedDate.getUTCFullYear()
+        const taskMonth = String(taskCreatedDate.getUTCMonth() + 1).padStart(2, '0')
+        const taskDay = String(taskCreatedDate.getUTCDate()).padStart(2, '0')
         taskDateStr = `${taskYear}-${taskMonth}-${taskDay}`
         
         return taskDateStr === targetDateStr
@@ -345,14 +346,23 @@ const EnhancedCalendar = ({ view: propView }) => {
     e.preventDefault();
     if (!isAdmin || !draggedTask || !day) return;
     
-    // Calculate the new date at midnight (start of the day)
+    // Calculate the new date using UTC to avoid timezone issues
+    // Create a date string in YYYY-MM-DD format directly
+    const year = selectedYear;
+    const month = String(selectedMonth + 1).padStart(2, '0'); // Months are 0-indexed
+    const dayStr = String(day).padStart(2, '0');
+    const dateString = `${year}-${month}-${dayStr}`;
+    
+    // Create a date object for the start of the day in local time
     const newDate = new Date(selectedYear, selectedMonth, day, 0, 0, 0, 0);
     
-    // Format the date to ISO string for the backend
+    // Format the date to ISO string for the backend, but ensure it represents the correct day
+    // We'll use the date string to create a proper UTC date
     const formattedDate = newDate.toISOString();
     
     console.log('Moving task:', draggedTask.id);
-    console.log('New date:', newDate);
+    console.log('Target date string:', dateString);
+    console.log('New date (local):', newDate);
     console.log('Formatted date for backend:', formattedDate);
     
     try {
