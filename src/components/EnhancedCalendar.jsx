@@ -380,7 +380,7 @@ const EnhancedCalendar = ({ view: propView }) => {
         // Log the new created_at value
         console.log('New created_at value:', result.task.created_at);
         // Show success message
-        alert('Task moved successfully!');
+        console.log('Task moved successfully!');
       }
     } catch (error) {
       console.error('Error moving task:', error);
