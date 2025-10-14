@@ -323,7 +323,7 @@ const DayView = () => {
                   <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 mb-2">
                     <div className="flex items-center space-x-3">
                       <div className={`w-3 h-3 rounded-full ${getPriorityColor(task.priority)}`}></div>
-                      <h3 className="text-base md:text-lg font-medium text-gray-900">{task.title}</h3>
+                      <h3 className={`text-base md:text-lg font-medium ${task.status === 'completed' ? 'line-through text-green-600' : 'text-gray-900'}`}>{task.title}</h3>
                     </div>
                     {isAdmin ? (
                       <select 

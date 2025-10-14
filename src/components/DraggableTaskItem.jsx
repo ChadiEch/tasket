@@ -3,7 +3,9 @@ import React from 'react';
 const DraggableTaskItem = ({ task, isAdmin, onTaskClick, onDragStart, onDragEnd, isDragging }) => {
   // Function to determine task styling based on priority and status
   const getTaskStyling = () => {
-    if (task.priority === 'high' || task.priority === 'urgent') {
+    if (task.status === 'completed') {
+      return 'bg-green-100 text-green-800 line-through';
+    } else if (task.priority === 'high' || task.priority === 'urgent') {
       return 'bg-red-100 text-red-800';
     } else if (task.status === 'completed') {
       return 'bg-green-100 text-green-800';

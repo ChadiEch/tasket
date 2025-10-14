@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import TaskDetail from './tasks/TaskDetail'
 import DeleteConfirmationDialog from './tasks/DeleteConfirmationDialog'
-import DraggableTaskItem from './DraggableTaskItem'
 
 const EnhancedCalendar = ({ view: propView }) => {
   const { tasks, navigateToDayView, selectedEmployee, navigateToCalendar, currentUser, isAdmin, deleteTask, updateTask, createTask, updateTaskStatus } = useApp()
@@ -18,28 +17,31 @@ const EnhancedCalendar = ({ view: propView }) => {
   const [draggedTask, setDraggedTask] = useState(null) // State for dragged task
   const [dropTarget, setDropTarget] = useState(null) // State for drop target
   
-  // State for todo list
-  const [todoList, setTodoList] = useState([])
+  // State for todo list with localStorage persistence
+  const [todoList, setTodoList] = useState(() => {
+    const savedTodos = localStorage.getItem('calendarTodos');
+    return savedTodos ? JSON.parse(savedTodos) : [
+      { id: 'todo1', title: 'Review project documentation', description: '', completed: false, assignedDate: null, priority: 'medium', estimated_hours: 1.00, attachments: [] },
+      { id: 'todo2', title: 'Prepare meeting agenda', description: '', completed: false, assignedDate: null, priority: 'high', estimated_hours: 0.50, attachments: [] },
+      { id: 'todo3', title: 'Update team progress report', description: '', completed: false, assignedDate: null, priority: 'medium', estimated_hours: 2.00, attachments: [] }
+    ];
+  });
   const [newTodo, setNewTodo] = useState({
     title: '',
     description: '',
     priority: 'medium',
-    estimated_hours: 1.00
-  })
-  const [showTodoForm, setShowTodoForm] = useState(false)
-  const [dragAction, setDragAction] = useState('copy') // 'copy' or 'move'
+    estimated_hours: 1.00,
+    attachments: []
+  });
+  const [showTodoForm, setShowTodoForm] = useState(false);
+  const [dragAction, setDragAction] = useState('copy'); // 'copy' or 'move'
 
-  const today = new Date()
+  const today = new Date();
 
-  // Initialize todo list with some sample tasks
+  // Save todo list to localStorage whenever it changes
   useEffect(() => {
-    const sampleTodos = [
-      { id: 'todo1', title: 'Review project documentation', description: '', completed: false, assignedDate: null, priority: 'medium', estimated_hours: 1.00 },
-      { id: 'todo2', title: 'Prepare meeting agenda', description: '', completed: false, assignedDate: null, priority: 'high', estimated_hours: 0.50 },
-      { id: 'todo3', title: 'Update team progress report', description: '', completed: false, assignedDate: null, priority: 'medium', estimated_hours: 2.00 }
-    ]
-    setTodoList(sampleTodos)
-  }, [])
+    localStorage.setItem('calendarTodos', JSON.stringify(todoList));
+  }, [todoList]);
 
   // Check if there's a task to view when component mounts or when tasks change
   useEffect(() => {
@@ -297,22 +299,38 @@ const EnhancedCalendar = ({ view: propView }) => {
   }
 
   const handleDeleteConfirm = async (action) => {
-    setShowDeleteDialog(false)
-    if (!taskToDelete) return
+    setShowDeleteDialog(false);
+    if (!taskToDelete) return;
     
     try {
-      await deleteTask(taskToDelete.id, action)
+      await deleteTask(taskToDelete.id, action);
+      
+      // If task was deleted, remove it from todo list assigned dates
+      setTodoList(prev => prev.map(todo => {
+        if (todo.assignedDate) {
+          // Check if this todo is assigned to the deleted task's date
+          const taskDate = new Date(taskToDelete.created_at);
+          const todoDate = new Date(todo.assignedDate);
+          
+          if (taskDate.toDateString() === todoDate.toDateString() && 
+              todo.title === taskToDelete.title) {
+            return { ...todo, assignedDate: null };
+          }
+        }
+        return todo;
+      }));
+      
       // Close task detail if it's open for the deleted task
       if (viewingTask && viewingTask.id === taskToDelete.id) {
-        setViewingTask(null)
+        setViewingTask(null);
       }
     } catch (error) {
-      console.error('Error deleting task:', error)
-      alert('Failed to delete task')
+      console.error('Error deleting task:', error);
+      alert('Failed to delete task');
     } finally {
-      setTaskToDelete(null)
+      setTaskToDelete(null);
     }
-  }
+  };
 
   // Function to open a task by ID (to be called from other components)
   const openTaskFromNotification = (taskId) => {
@@ -517,6 +535,39 @@ const EnhancedCalendar = ({ view: propView }) => {
     }));
   };
 
+  // Handle attachment changes for new todo
+  const handleTodoAttachmentChange = (e) => {
+    const { name, value } = e.target;
+    setNewTodo(prev => {
+      const attachments = prev.attachments && prev.attachments.length > 0 
+        ? [...prev.attachments] 
+        : [{ id: Date.now(), type: 'link', url: '', name: '' }];
+      
+      attachments[0] = { ...attachments[0], [name]: value };
+      
+      return {
+        ...prev,
+        attachments
+      };
+    });
+  };
+
+  // Add attachment to new todo
+  const addTodoAttachment = () => {
+    if (newTodo.attachments && newTodo.attachments.length > 0 && newTodo.attachments[0].url) {
+      const newAttachment = {
+        id: Date.now(),
+        type: 'link',
+        url: newTodo.attachments[0].url,
+        name: newTodo.attachments[0].name || newTodo.attachments[0].url
+      };
+      setNewTodo(prev => ({
+        ...prev,
+        attachments: [newAttachment]
+      }));
+    }
+  };
+
   // Add new todo item
   const addNewTodo = () => {
     if (newTodo.title.trim() === '') return;
@@ -525,7 +576,8 @@ const EnhancedCalendar = ({ view: propView }) => {
       id: `todo${Date.now()}`,
       ...newTodo,
       completed: false,
-      assignedDate: null
+      assignedDate: null,
+      attachments: newTodo.attachments || []
     };
     
     setTodoList(prev => [...prev, newTodoItem]);
@@ -533,14 +585,45 @@ const EnhancedCalendar = ({ view: propView }) => {
       title: '',
       description: '',
       priority: 'medium',
-      estimated_hours: 1.00
+      estimated_hours: 1.00,
+      attachments: []
     });
     setShowTodoForm(false);
+  };
+
+  // Delete todo item
+  const deleteTodo = (id) => {
+    setTodoList(prev => prev.filter(todo => todo.id !== id));
   };
 
   // Handle drag action change
   const handleDragActionChange = (action) => {
     setDragAction(action);
+  };
+
+  // Handle task status change in calendar view
+  const handleTaskStatusChange = async (taskId, newStatus) => {
+    try {
+      const result = await updateTask(taskId, { status: newStatus });
+      
+      // If task is marked as completed, update corresponding todo item
+      if (newStatus === 'completed') {
+        const updatedTask = result.task;
+        if (updatedTask) {
+          setTodoList(prev => prev.map(todo => {
+            // Check if this todo corresponds to the completed task
+            if (todo.assignedDate && 
+                todo.title === updatedTask.title &&
+                new Date(todo.assignedDate).toDateString() === new Date(updatedTask.created_at).toDateString()) {
+              return { ...todo, completed: true };
+            }
+            return todo;
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Error updating task status:', error);
+    }
   };
 
   // Make this function available to other components through context or props
@@ -744,14 +827,31 @@ const EnhancedCalendar = ({ view: propView }) => {
                                   key={task.id}
                                   className="relative group"
                                 >
-                                  <DraggableTaskItem
-                                    task={task}
-                                    isAdmin={isAdmin}
-                                    onTaskClick={openTaskView}
-                                    onDragStart={handleDragStart}
+                                  <div
+                                    draggable={isAdmin}
+                                    onDragStart={(e) => isAdmin && handleDragStart(e, task)}
                                     onDragEnd={handleDragEnd}
-                                    isDragging={draggedTask && draggedTask.id === task.id}
-                                  />
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openTaskView(task);
+                                    }}
+                                    className={`text-xs p-1 rounded truncate cursor-pointer hover:bg-opacity-80 ${
+                                      task.status === 'completed' 
+                                        ? 'bg-green-100 text-green-800 line-through' 
+                                        : task.priority === 'high' || task.priority === 'urgent'
+                                          ? 'bg-red-100 text-red-800'
+                                          : 'bg-blue-100 text-blue-800'
+                                    } ${
+                                      isAdmin ? 'cursor-move touch-manipulation' : 'cursor-pointer'
+                                    } ${
+                                      draggedTask && draggedTask.id === task.id ? 'opacity-50 ring-2 ring-blue-500' : ''
+                                    }`}
+                                  >
+                                    {task.title}
+                                    {isAdmin && (
+                                      <span className="ml-1 text-xs opacity-70">⋮⋮</span>
+                                    )}
+                                  </div>
                                   {isAdmin && (
                                     <button
                                       onClick={(e) => {
@@ -765,6 +865,21 @@ const EnhancedCalendar = ({ view: propView }) => {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                       </svg>
                                     </button>
+                                  )}
+                                  {isAdmin && (
+                                    <select
+                                      value={task.status}
+                                      onChange={(e) => {
+                                        e.stopPropagation();
+                                        handleTaskStatusChange(task.id, e.target.value);
+                                      }}
+                                      className="absolute bottom-0 right-0 w-6 h-4 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <option value="planned">Planned</option>
+                                      <option value="in-progress">In Progress</option>
+                                      <option value="completed">Completed</option>
+                                    </select>
                                   )}
                                 </div>
                               ))}
@@ -819,6 +934,58 @@ const EnhancedCalendar = ({ view: propView }) => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                     rows="2"
                   />
+                  
+                  {/* Attachments for todo */}
+                  <div className="border-t border-gray-200 pt-2">
+                    <h4 className="text-xs font-medium text-gray-500 mb-1">Attachments</h4>
+                    {newTodo.attachments && newTodo.attachments.length > 0 && newTodo.attachments[0].url ? (
+                      <div className="space-y-1">
+                        <div className="flex items-center text-xs p-1 bg-white rounded">
+                          <span className="flex-1 truncate">{newTodo.attachments[0].name || newTodo.attachments[0].url}</span>
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              setNewTodo(prev => ({ ...prev, attachments: [] }));
+                            }}
+                            className="text-red-500 hover:text-red-700 ml-2"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-500 italic">No attachments added</p>
+                    )}
+                    
+                    <div className="mt-2 flex">
+                      <input
+                        type="text"
+                        name="url"
+                        placeholder="Attachment URL"
+                        value={newTodo.attachments && newTodo.attachments.length > 0 ? newTodo.attachments[0]?.url || '' : ''}
+                        onChange={handleTodoAttachmentChange}
+                        className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded-l focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      />
+                      <input
+                        type="text"
+                        name="name"
+                        placeholder="Name (optional)"
+                        value={newTodo.attachments && newTodo.attachments.length > 0 ? newTodo.attachments[0]?.name || '' : ''}
+                        onChange={handleTodoAttachmentChange}
+                        className="flex-1 px-2 py-1 text-xs border-t border-b border-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={addTodoAttachment}
+                        className="px-2 py-1 bg-indigo-600 text-white text-xs rounded-r hover:bg-indigo-700"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                  
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="block text-xs text-gray-500 mb-1">Priority</label>
@@ -891,10 +1058,18 @@ const EnhancedCalendar = ({ view: propView }) => {
                     key={todo.id}
                     draggable
                     onDragStart={(e) => handleTodoDragStart(e, todo)}
-                    className={`p-3 border rounded-md cursor-move hover:bg-gray-50 ${
+                    className={`p-3 border rounded-md cursor-move hover:bg-gray-50 relative ${
                       todo.completed ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'
                     }`}
                   >
+                    <button
+                      onClick={() => deleteTodo(todo.id)}
+                      className="absolute top-1 right-1 text-gray-400 hover:text-red-600"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                     <div className="flex items-start">
                       <input
                         type="checkbox"
@@ -910,6 +1085,23 @@ const EnhancedCalendar = ({ view: propView }) => {
                           <p className={`text-xs mt-1 ${todo.completed ? 'text-green-500' : 'text-gray-500'}`}>
                             {todo.description}
                           </p>
+                        )}
+                        {todo.attachments && todo.attachments.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {todo.attachments.slice(0, 3).map((attachment, index) => (
+                              <span key={index} className="inline-flex items-center px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
+                                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                </svg>
+                                Link
+                              </span>
+                            ))}
+                            {todo.attachments.length > 3 && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
+                                +{todo.attachments.length - 3}
+                              </span>
+                            )}
+                          </div>
                         )}
                         <div className="flex items-center mt-1">
                           <span className={`inline-block w-2 h-2 rounded-full mr-1 ${
