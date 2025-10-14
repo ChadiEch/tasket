@@ -5,7 +5,7 @@ import DeleteConfirmationDialog from './tasks/DeleteConfirmationDialog'
 import DraggableTaskItem from './DraggableTaskItem'
 
 const EnhancedCalendar = ({ view: propView }) => {
-  const { tasks, navigateToDayView, selectedEmployee, navigateToCalendar, currentUser, isAdmin, deleteTask, updateTask, createTask } = useApp()
+  const { tasks, navigateToDayView, selectedEmployee, navigateToCalendar, currentUser, isAdmin, deleteTask, updateTask, createTask, updateTaskStatus } = useApp()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState('year') // 'year' or 'days'
   const [isMyTasksMode, setIsMyTasksMode] = useState(propView === 'my-tasks') // Whether we're filtering by current user
@@ -20,18 +20,23 @@ const EnhancedCalendar = ({ view: propView }) => {
   
   // State for todo list
   const [todoList, setTodoList] = useState([])
-  const [newTodo, setNewTodo] = useState('')
+  const [newTodo, setNewTodo] = useState({
+    title: '',
+    description: '',
+    priority: 'medium',
+    estimated_hours: 1.00
+  })
+  const [showTodoForm, setShowTodoForm] = useState(false)
+  const [dragAction, setDragAction] = useState('copy') // 'copy' or 'move'
 
   const today = new Date()
 
   // Initialize todo list with some sample tasks
   useEffect(() => {
     const sampleTodos = [
-      { id: 'todo1', title: 'Review project documentation', completed: false, assignedDate: null },
-      { id: 'todo2', title: 'Prepare meeting agenda', completed: false, assignedDate: null },
-      { id: 'todo3', title: 'Update team progress report', completed: false, assignedDate: null },
-      { id: 'todo4', title: 'Research new technologies', completed: false, assignedDate: null },
-      { id: 'todo5', title: 'Organize workspace', completed: false, assignedDate: null }
+      { id: 'todo1', title: 'Review project documentation', description: '', completed: false, assignedDate: null, priority: 'medium', estimated_hours: 1.00 },
+      { id: 'todo2', title: 'Prepare meeting agenda', description: '', completed: false, assignedDate: null, priority: 'high', estimated_hours: 0.50 },
+      { id: 'todo3', title: 'Update team progress report', description: '', completed: false, assignedDate: null, priority: 'medium', estimated_hours: 2.00 }
     ]
     setTodoList(sampleTodos)
   }, [])
@@ -410,7 +415,7 @@ const EnhancedCalendar = ({ view: propView }) => {
   // Handle todo list drag start
   const handleTodoDragStart = (e, todo) => {
     e.dataTransfer.setData('text/plain', JSON.stringify(todo));
-    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.effectAllowed = dragAction === 'copy' ? 'copy' : 'move';
   };
 
   // Handle todo drop on calendar day
@@ -437,12 +442,13 @@ const EnhancedCalendar = ({ view: propView }) => {
       // Create a new task based on the todo item
       const newTaskData = {
         title: todo.title,
-        description: 'Task created from todo list',
+        description: todo.description || 'Task created from todo list',
         created_at: formattedDate,
         due_date: formattedDate,
-        priority: 'medium',
+        priority: todo.priority || 'medium',
         status: 'planned',
-        assigned_to: currentUser?.id || null
+        assigned_to: currentUser?.id || null,
+        estimated_hours: todo.estimated_hours || 1.00
       };
       
       const result = await createTask(newTaskData);
@@ -452,10 +458,17 @@ const EnhancedCalendar = ({ view: propView }) => {
         alert(`Failed to create task: ${result.error}`);
       } else {
         console.log('Task created successfully:', result.task);
-        // Update todo list to show assigned date
-        setTodoList(prev => prev.map(t => 
-          t.id === todo.id ? { ...t, assignedDate: targetDate } : t
-        ));
+        
+        // If moving (not copying), remove from todo list
+        if (dragAction === 'move') {
+          setTodoList(prev => prev.filter(t => t.id !== todo.id));
+        } else {
+          // If copying, update todo list to show assigned date
+          setTodoList(prev => prev.map(t => 
+            t.id === todo.id ? { ...t, assignedDate: targetDate } : t
+          ));
+        }
+        
         // Show success message
         console.log('Task created successfully!');
       }
@@ -466,25 +479,68 @@ const EnhancedCalendar = ({ view: propView }) => {
   };
 
   // Toggle todo completion status
-  const toggleTodoCompletion = (id) => {
-    setTodoList(prev => prev.map(todo => 
-      todo.id === id ? { ...todo, completed: !todo.completed } : todo
-    ));
+  const toggleTodoCompletion = async (id) => {
+    setTodoList(prev => {
+      return prev.map(todo => {
+        if (todo.id === id) {
+          const updatedTodo = { ...todo, completed: !todo.completed };
+          
+          // If todo is marked as completed and it's assigned to a date, 
+          // we should also mark the corresponding task as completed
+          if (updatedTodo.completed && updatedTodo.assignedDate) {
+            // Find the task in the tasks list that matches this todo
+            const correspondingTask = tasks.find(task => 
+              task.title === updatedTodo.title && 
+              new Date(task.created_at).toDateString() === new Date(updatedTodo.assignedDate).toDateString() &&
+              task.assigned_to === currentUser?.id
+            );
+            
+            if (correspondingTask) {
+              // Update the task status to completed
+              updateTaskStatus(correspondingTask.id, 'completed');
+            }
+          }
+          
+          return updatedTodo;
+        }
+        return todo;
+      });
+    });
+  };
+
+  // Handle new todo form changes
+  const handleTodoFormChange = (e) => {
+    const { name, value } = e.target;
+    setNewTodo(prev => ({
+      ...prev,
+      [name]: name === 'estimated_hours' ? parseFloat(value) || 0 : value
+    }));
   };
 
   // Add new todo item
   const addNewTodo = () => {
-    if (newTodo.trim() === '') return;
+    if (newTodo.title.trim() === '') return;
     
     const newTodoItem = {
       id: `todo${Date.now()}`,
-      title: newTodo,
+      ...newTodo,
       completed: false,
       assignedDate: null
     };
     
     setTodoList(prev => [...prev, newTodoItem]);
-    setNewTodo('');
+    setNewTodo({
+      title: '',
+      description: '',
+      priority: 'medium',
+      estimated_hours: 1.00
+    });
+    setShowTodoForm(false);
+  };
+
+  // Handle drag action change
+  const handleDragActionChange = (action) => {
+    setDragAction(action);
   };
 
   // Make this function available to other components through context or props
@@ -652,7 +708,7 @@ const EnhancedCalendar = ({ view: propView }) => {
                         onDragOver={(e) => {
                           e.preventDefault();
                           if (day) {
-                            e.dataTransfer.dropEffect = 'copy';
+                            e.dataTransfer.dropEffect = dragAction === 'copy' ? 'copy' : 'move';
                           }
                         }}
                         onDragLeave={handleDragLeave}
@@ -672,7 +728,7 @@ const EnhancedCalendar = ({ view: propView }) => {
                       >
                         {day && isDropTarget && (
                           <div className="absolute top-1 right-1 bg-blue-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                            ↓
+                            {dragAction === 'copy' ? 'C' : 'M'}
                           </div>
                         )}
                         {day && (
@@ -682,8 +738,8 @@ const EnhancedCalendar = ({ view: propView }) => {
                             }`}>
                               {day}
                             </div>
-                            <div className="space-y-1">
-                              {getTasksForDay(day).slice(0, 3).map(task => (
+                            <div className="space-y-1 overflow-y-auto max-h-32">
+                              {getTasksForDay(day).slice(0, 10).map(task => (
                                 <div 
                                   key={task.id}
                                   className="relative group"
@@ -712,9 +768,9 @@ const EnhancedCalendar = ({ view: propView }) => {
                                   )}
                                 </div>
                               ))}
-                              {getTasksForDay(day).length > 3 && (
+                              {getTasksForDay(day).length > 10 && (
                                 <div className="text-xs text-gray-500">
-                                  +{getTasksForDay(day).length - 3} more
+                                  +{getTasksForDay(day).length - 10} more
                                 </div>
                               )}
                             </div>
@@ -733,23 +789,95 @@ const EnhancedCalendar = ({ view: propView }) => {
         {/* Todo List Section */}
         <div className="w-full lg:w-80">
           <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Todo List</h3>
-            
-            {/* Add new todo */}
-            <div className="flex mb-4">
-              <input
-                type="text"
-                value={newTodo}
-                onChange={(e) => setNewTodo(e.target.value)}
-                placeholder="Add a new todo..."
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                onKeyPress={(e) => e.key === 'Enter' && addNewTodo()}
-              />
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
               <button
-                onClick={addNewTodo}
-                className="px-3 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
               >
-                Add
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            
+            {/* Add new todo form */}
+            {showTodoForm && (
+              <div className="mb-4 p-3 border border-gray-200 rounded-md bg-gray-50">
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    name="title"
+                    value={newTodo.title}
+                    onChange={handleTodoFormChange}
+                    placeholder="Todo title"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                  />
+                  <textarea
+                    name="description"
+                    value={newTodo.description}
+                    onChange={handleTodoFormChange}
+                    placeholder="Description (optional)"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                    rows="2"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Priority</label>
+                      <select
+                        name="priority"
+                        value={newTodo.priority}
+                        onChange={handleTodoFormChange}
+                        className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                      >
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Hours</label>
+                      <input
+                        type="number"
+                        name="estimated_hours"
+                        value={newTodo.estimated_hours}
+                        onChange={handleTodoFormChange}
+                        min="0.25"
+                        step="0.25"
+                        className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    onClick={addNewTodo}
+                    className="w-full px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+                  >
+                    Add Todo
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {/* Drag action selector */}
+            <div className="mb-4 flex space-x-2">
+              <button
+                onClick={() => handleDragActionChange('copy')}
+                className={`flex-1 px-3 py-2 rounded-md text-sm ${
+                  dragAction === 'copy' 
+                    ? 'bg-indigo-600 text-white' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                Copy
+              </button>
+              <button
+                onClick={() => handleDragActionChange('move')}
+                className={`flex-1 px-3 py-2 rounded-md text-sm ${
+                  dragAction === 'move' 
+                    ? 'bg-indigo-600 text-white' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                Move
               </button>
             </div>
             
@@ -775,9 +903,25 @@ const EnhancedCalendar = ({ view: propView }) => {
                         className="mt-1 mr-2"
                       />
                       <div className="flex-1">
-                        <p className={`text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        <p className={`text-sm ${todo.completed ? 'line-through text-green-600' : 'text-gray-900'}`}>
                           {todo.title}
                         </p>
+                        {todo.description && (
+                          <p className={`text-xs mt-1 ${todo.completed ? 'text-green-500' : 'text-gray-500'}`}>
+                            {todo.description}
+                          </p>
+                        )}
+                        <div className="flex items-center mt-1">
+                          <span className={`inline-block w-2 h-2 rounded-full mr-1 ${
+                            todo.priority === 'low' ? 'bg-green-500' :
+                            todo.priority === 'medium' ? 'bg-yellow-500' :
+                            todo.priority === 'high' ? 'bg-orange-500' :
+                            'bg-red-500'
+                          }`}></span>
+                          <span className="text-xs text-gray-500">
+                            {todo.estimated_hours} hrs
+                          </span>
+                        </div>
                         {todo.assignedDate && (
                           <p className="text-xs text-gray-500 mt-1">
                             Assigned: {new Date(todo.assignedDate).toLocaleDateString()}
@@ -792,6 +936,7 @@ const EnhancedCalendar = ({ view: propView }) => {
             
             <div className="mt-4 text-xs text-gray-500">
               <p>Drag todos to calendar days to create tasks</p>
+              <p className="mt-1">Select Copy/Move before dragging</p>
               <p className="mt-1">Check todos to mark them as completed</p>
             </div>
           </div>

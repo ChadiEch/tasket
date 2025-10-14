@@ -6,7 +6,7 @@ import DeleteConfirmationDialog from './DeleteConfirmationDialog';
 import { PencilIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 const TaskDetail = ({ task, onClose }) => {
-  const { isAdmin, deleteTask } = useApp();
+  const { isAdmin, deleteTask, updateTask } = useApp();
   const [isEditMode, setIsEditMode] = useState(false);
   const [viewingPhotos, setViewingPhotos] = useState(null);
   const [photoIndex, setPhotoIndex] = useState(0);
@@ -34,6 +34,14 @@ const TaskDetail = ({ task, onClose }) => {
     } catch (error) {
       console.error('Error deleting task:', error);
       alert('Failed to delete task');
+    }
+  };
+  
+  const handleStatusChange = async (newStatus) => {
+    try {
+      await updateTask(task.id, { status: newStatus });
+    } catch (error) {
+      console.error('Error updating task status:', error);
     }
   };
   
@@ -291,9 +299,21 @@ const TaskDetail = ({ task, onClose }) => {
                 <span className={`px-2 py-1 text-xs font-medium rounded-md ${getPriorityColor(task.priority)}`}>
                   {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)} Priority
                 </span>
-                <span className={`px-2 py-1 text-xs font-medium rounded-md ${getStatusColor(task.status)}`}>
-                  {task.status === 'in-progress' ? 'In Progress' : task.status.charAt(0).toUpperCase() + task.status.slice(1)}
-                </span>
+                {isAdmin ? (
+                  <select 
+                    value={task.status}
+                    onChange={(e) => handleStatusChange(e.target.value)}
+                    className={`px-2 py-1 text-xs font-medium rounded-md ${getStatusColor(task.status)} border-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
+                  >
+                    <option value="planned">Planned</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                ) : (
+                  <span className={`px-2 py-1 text-xs font-medium rounded-md ${getStatusColor(task.status)}`}>
+                    {task.status === 'in-progress' ? 'In Progress' : task.status.charAt(0).toUpperCase() + task.status.slice(1)}
+                  </span>
+                )}
               </div>
             </div>
             

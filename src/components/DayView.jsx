@@ -6,7 +6,7 @@ import AttachmentViewer from './AttachmentViewer'
 import DeleteConfirmationDialog from './tasks/DeleteConfirmationDialog'
 
 const DayView = () => {
-  const { selectedDate, selectedEmployee, getTasksForDate, navigateToCalendar, navigateToTasks, currentUser, deleteTask, isAdmin, tasks } = useApp()
+  const { selectedDate, selectedEmployee, getTasksForDate, navigateToCalendar, navigateToTasks, currentUser, deleteTask, isAdmin, tasks, updateTask } = useApp()
   const { subscribeToTaskUpdates, connected } = useWebSocket()
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [editingTask, setEditingTask] = useState(null)
@@ -231,6 +231,14 @@ const DayView = () => {
     }
   };
 
+  const handleTaskStatusChange = async (taskId, newStatus) => {
+    try {
+      await updateTask(taskId, { status: newStatus });
+    } catch (error) {
+      console.error('Error updating task status:', error);
+    }
+  };
+
   return (
     <div className="p-4 md:p-6 pb-20 md:pb-6">
       {/* Header */}
@@ -317,9 +325,21 @@ const DayView = () => {
                       <div className={`w-3 h-3 rounded-full ${getPriorityColor(task.priority)}`}></div>
                       <h3 className="text-base md:text-lg font-medium text-gray-900">{task.title}</h3>
                     </div>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(task.status)} self-start`}>
-                      {task.status.replace('-', ' ')}
-                    </span>
+                    {isAdmin ? (
+                      <select 
+                        value={task.status}
+                        onChange={(e) => handleTaskStatusChange(task.id, e.target.value)}
+                        className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(task.status)} self-start`}
+                      >
+                        <option value="planned">Planned</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                      </select>
+                    ) : (
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(task.status)} self-start`}>
+                        {task.status.replace('-', ' ')}
+                      </span>
+                    )}
                   </div>
                   
                   {task.description && (
@@ -405,7 +425,7 @@ const DayView = () => {
                                   </svg>
                                 ) : (
                                   <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                                   </svg>
                                 )}
                               </div>

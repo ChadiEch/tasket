@@ -166,12 +166,30 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // Update task status
+  const updateTaskStatus = async (taskId, status) => {
+    try {
+      setError(null);
+      const response = await tasksAPI.updateTask(taskId, { status });
+      setTasks(prev => prev.map(task => 
+        task.id === taskId ? { ...task, ...response.task } : task
+      ));
+      
+      return { task: response.task, error: null };
+    } catch (error) {
+      console.error('Error updating task status:', error);
+      setError(error.message);
+      return { task: null, error: error.message };
+    }
+  };
+
+  // Update task
   const updateTask = async (taskId, taskData) => {
     try {
       setError(null);
       const response = await tasksAPI.updateTask(taskId, taskData);
       setTasks(prev => prev.map(task => 
-        task.id === taskId ? response.task : task
+        task.id === taskId ? { ...task, ...response.task } : task
       ));
       
       // Don't emit WebSocket event here as the backend already handles it
@@ -653,6 +671,7 @@ export const AppProvider = ({ children }) => {
     fetchAllData,
     createTask,
     updateTask,
+    updateTaskStatus,
     updateTaskCreatedAt, // Add the new function
     deleteTask,
     restoreTask,
