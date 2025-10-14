@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import TaskDetail from './tasks/TaskDetail'
 import DeleteConfirmationDialog from './tasks/DeleteConfirmationDialog'
+import { tasksAPI } from '../lib/api' // Import tasksAPI for file uploads
 
 const EnhancedCalendar = ({ view: propView }) => {
   const { tasks, navigateToDayView, selectedEmployee, navigateToCalendar, currentUser, isAdmin, deleteTask, updateTask, createTask, updateTaskStatus } = useApp()
@@ -594,27 +595,42 @@ const EnhancedCalendar = ({ view: propView }) => {
   // Upload file to Cloudflare R2
   const uploadFileToR2 = async (file) => {
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      console.log('Uploading file to server:', file.name);
+      // Use the dedicated upload method from tasksAPI
+      const result = await tasksAPI.uploadFile(file);
+      console.log('Upload result:', result);
       
-      // Use the same API endpoint as TaskForm for consistency
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to upload file');
+      // Check if the result is valid
+      if (!result) {
+        throw new Error('No response received from server');
       }
       
-      const result = await response.json();
-      return result.url; // Return the uploaded file URL
+      // Extract the uploaded file URL from the task attachments
+      if (result.task && result.task.attachments && Array.isArray(result.task.attachments) && result.task.attachments.length > 0) {
+        // Find the attachment that matches our uploaded file
+        const uploadedAttachment = result.task.attachments.find(attachment => 
+          attachment.name === file.name
+        ) || result.task.attachments[0]; // Fallback to first attachment
+        
+        if (uploadedAttachment && uploadedAttachment.url) {
+          console.log('Successfully uploaded file URL:', uploadedAttachment.url);
+          return uploadedAttachment.url; // Return the uploaded file URL
+        } else {
+          console.error('Uploaded attachment missing URL:', uploadedAttachment);
+          throw new Error('Uploaded file missing URL');
+        }
+      } else {
+        console.error('Invalid response structure:', result);
+        throw new Error('Invalid response from server: missing attachments');
+      }
     } catch (error) {
-      console.error('Error uploading file:', error);
-      throw error;
+      console.error('Error uploading file to R2:', error);
+      // Provide more detailed error information
+      if (error.message) {
+        throw new Error(`File upload failed: ${error.message}`);
+      } else {
+        throw new Error('File upload failed: Unknown error occurred');
+      }
     }
   };
 
@@ -623,31 +639,59 @@ const EnhancedCalendar = ({ view: propView }) => {
     if (newTodo.title.trim() === '') return;
     
     try {
+      console.log('Adding new todo with attachments:', newTodo);
+      
       // Upload any file attachments to Cloudflare R2
       const attachmentsWithUrls = [];
+      const filesToUpload = [];
+      const linkAttachments = [];
+      
       for (const attachment of newTodo.attachments) {
         if (attachment.file) {
           // This is a file that needs to be uploaded
-          const url = await uploadFileToR2(attachment.file);
-          attachmentsWithUrls.push({
-            id: attachment.id,
-            type: attachment.type,
-            url: url,
-            name: attachment.name,
-            size: attachment.size
-          });
-        } else {
+          filesToUpload.push(attachment);
+        } else if (attachment.type === 'link' && attachment.url) {
           // This is a link attachment
-          attachmentsWithUrls.push(attachment);
+          linkAttachments.push(attachment);
         }
       }
+      
+      console.log('Files to upload:', filesToUpload.length);
+      console.log('Link attachments:', linkAttachments.length);
+      
+      // Upload all files
+      const uploadedAttachments = [];
+      for (let i = 0; i < filesToUpload.length; i++) {
+        const fileAttachment = filesToUpload[i];
+        
+        try {
+          console.log('Uploading file:', fileAttachment.name);
+          const uploadedUrl = await uploadFileToR2(fileAttachment.file);
+          console.log('File uploaded successfully:', uploadedUrl);
+          
+          uploadedAttachments.push({
+            id: fileAttachment.id,
+            type: fileAttachment.type,
+            url: uploadedUrl,
+            name: fileAttachment.name,
+            size: fileAttachment.size
+          });
+        } catch (uploadError) {
+          console.error('Error uploading file:', uploadError);
+          throw new Error(`Failed to upload file "${fileAttachment.name}": ${uploadError.message || 'Unknown error'}`);
+        }
+      }
+      
+      // Combine all attachments
+      const allAttachments = [...uploadedAttachments, ...linkAttachments];
+      console.log('All attachments:', allAttachments);
       
       const newTodoItem = {
         id: `todo${Date.now()}`,
         ...newTodo,
         completed: false,
         assignedDate: null,
-        attachments: attachmentsWithUrls
+        attachments: allAttachments
       };
       
       setTodoList(prev => [...prev, newTodoItem]);
@@ -659,9 +703,11 @@ const EnhancedCalendar = ({ view: propView }) => {
         attachments: []
       });
       setShowTodoForm(false);
+      
+      console.log('Todo added successfully');
     } catch (error) {
       console.error('Error adding todo with attachments:', error);
-      alert('Failed to add todo with attachments. Please try again.');
+      alert(`Failed to add todo with attachments: ${error.message || 'Please try again.'}`);
     }
   };
 
