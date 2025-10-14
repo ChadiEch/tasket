@@ -344,8 +344,10 @@ const EnhancedCalendar = ({ view: propView }) => {
   // Handle drag start
   const handleDragStart = (e, task) => {
     if (!isAdmin) return;
-    setDraggedTask(task);
+    // Include source information to distinguish between tasks and todos
+    e.dataTransfer.setData('text/plain', JSON.stringify({ ...task, source: 'task' }));
     e.dataTransfer.effectAllowed = 'move';
+    setDraggedTask(task);
     // Set drag image to improve UX
     const dragImage = document.createElement('div');
     dragImage.style.position = 'absolute';
@@ -507,7 +509,7 @@ const EnhancedCalendar = ({ view: propView }) => {
 
   // Handle todo list drag start
   const handleTodoDragStart = (e, todo) => {
-    e.dataTransfer.setData('text/plain', JSON.stringify(todo));
+    e.dataTransfer.setData('text/plain', JSON.stringify({ ...todo, source: 'todo' }));
     e.dataTransfer.effectAllowed = dragAction === 'copy' ? 'copy' : 'move';
   };
 
@@ -875,11 +877,31 @@ const EnhancedCalendar = ({ view: propView }) => {
                         onDragOver={(e) => {
                           e.preventDefault();
                           if (day) {
-                            e.dataTransfer.dropEffect = dragAction === 'copy' ? 'copy' : 'move';
+                            // Check what type of item is being dragged
+                            const data = e.dataTransfer.getData('text/plain');
+                            if (data) {
+                              try {
+                                const parsedData = JSON.parse(data);
+                                if (parsedData.source === 'task') {
+                                  // Moving a task between days
+                                  e.dataTransfer.dropEffect = 'move';
+                                } else if (parsedData.source === 'todo') {
+                                  // Moving a todo to a day
+                                  e.dataTransfer.dropEffect = dragAction === 'copy' ? 'copy' : 'move';
+                                }
+                              } catch (error) {
+                                // Not a valid JSON, default to move
+                                e.dataTransfer.dropEffect = 'move';
+                              }
+                            } else {
+                              // Default to move for tasks
+                              e.dataTransfer.dropEffect = 'move';
+                            }
+                            setDropTarget(day);
                           }
                         }}
                         onDragLeave={handleDragLeave}
-                        onDrop={(e) => day && handleTodoDrop(e, day)}
+                        onDrop={(e) => day && handleDrop(e, day)}
                         className={`
                           min-h-24 p-2 border rounded-lg relative
                           ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
@@ -887,7 +909,7 @@ const EnhancedCalendar = ({ view: propView }) => {
                             ? 'bg-blue-50 border-blue-200 ring-2 ring-blue-300'
                             : 'border-gray-200'
                           }
-                          ${isDropTarget
+                          ${dropTarget === day
                             ? 'bg-blue-100 border-blue-400 ring-2 ring-blue-200'
                             : ''
                           }
