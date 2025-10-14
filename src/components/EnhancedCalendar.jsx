@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import TaskDetail from './tasks/TaskDetail'
 import DeleteConfirmationDialog from './tasks/DeleteConfirmationDialog'
-import { tasksAPI } from '../lib/api' // Import tasksAPI for file uploads
 
 const EnhancedCalendar = ({ view: propView }) => {
   const { tasks, navigateToDayView, selectedEmployee, navigateToCalendar, currentUser, isAdmin, deleteTask, updateTask, createTask, updateTaskStatus } = useApp()
@@ -345,7 +344,8 @@ const EnhancedCalendar = ({ view: propView }) => {
   // Handle drag start
   const handleDragStart = (e, task) => {
     if (!isAdmin) return;
-    setDraggedTask(task);
+    // Include source information to distinguish between tasks and todos
+    e.dataTransfer.setData('text/plain', JSON.stringify({ ...task, source: 'task' }));
     e.dataTransfer.effectAllowed = 'move';
     // Set drag image to improve UX
     const dragImage = document.createElement('div');
@@ -433,7 +433,7 @@ const EnhancedCalendar = ({ view: propView }) => {
 
   // Handle todo list drag start
   const handleTodoDragStart = (e, todo) => {
-    e.dataTransfer.setData('text/plain', JSON.stringify(todo));
+    e.dataTransfer.setData('text/plain', JSON.stringify({ ...todo, source: 'todo' }));
     e.dataTransfer.effectAllowed = dragAction === 'copy' ? 'copy' : 'move';
   };
 
@@ -467,8 +467,7 @@ const EnhancedCalendar = ({ view: propView }) => {
         priority: todo.priority || 'medium',
         status: 'planned',
         assigned_to: currentUser?.id || null,
-        estimated_hours: todo.estimated_hours || 1.00,
-        attachments: todo.attachments || [] // Include attachments from todo
+        estimated_hours: todo.estimated_hours || 1.00
       };
       
       const result = await createTask(newTaskData);
@@ -495,6 +494,37 @@ const EnhancedCalendar = ({ view: propView }) => {
     } catch (error) {
       console.error('Error creating task:', error);
       alert(`Failed to create task: ${error.message}`);
+    }
+  };
+
+  // Handle task drop on todo list
+  const handleTaskDropOnTodoList = async (e) => {
+    e.preventDefault();
+    const taskData = e.dataTransfer.getData('text/plain');
+    if (!taskData) return;
+    
+    const task = JSON.parse(taskData);
+    if (!task) return;
+    
+    try {
+      // Update task to remove created_at date
+      const updatedTaskData = {
+        created_at: null
+      };
+      
+      const result = await updateTask(task.id, updatedTaskData);
+      
+      if (result.error) {
+        console.error('Error updating task:', result.error);
+        alert(`Failed to remove task from calendar: ${result.error}`);
+      } else {
+        console.log('Task removed from calendar successfully:', result.task);
+        // Show success message
+        console.log('Task removed from calendar successfully!');
+      }
+    } catch (error) {
+      console.error('Error removing task from calendar:', error);
+      alert(`Failed to remove task from calendar: ${error.message}`);
     }
   };
 
@@ -528,11 +558,6 @@ const EnhancedCalendar = ({ view: propView }) => {
     });
   };
 
-  // Delete todo item
-  const deleteTodo = (id) => {
-    setTodoList(prev => prev.filter(todo => todo.id !== id));
-  };
-
   // Handle new todo form changes
   const handleTodoFormChange = (e) => {
     const { name, value } = e.target;
@@ -559,162 +584,57 @@ const EnhancedCalendar = ({ view: propView }) => {
     });
   };
 
-  // Handle file upload for todo attachments
-  const handleTodoFileUpload = async (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
-    
-    // Create attachment objects for each file
-    const fileAttachments = files.map((file, index) => {
-      let type = 'document'; // Default type
-      if (file.type.startsWith('image/')) {
-        type = 'photo';
-      } else if (file.type.startsWith('video/')) {
-        type = 'video';
-      }
-      
-      return {
-        id: Date.now() + index,
-        type: type,
-        file: file,
-        name: file.name,
-        size: file.size,
-        url: URL.createObjectURL(file) // For preview only
+  // Add attachment to new todo
+  const addTodoAttachment = () => {
+    if (newTodo.attachments && newTodo.attachments.length > 0 && newTodo.attachments[0].url) {
+      const newAttachment = {
+        id: Date.now(),
+        type: 'link',
+        url: newTodo.attachments[0].url,
+        name: newTodo.attachments[0].name || newTodo.attachments[0].url
       };
-    });
-    
-    // Add to newTodo attachments
-    setNewTodo(prev => ({
-      ...prev,
-      attachments: [...prev.attachments, ...fileAttachments]
-    }));
+      setNewTodo(prev => ({
+        ...prev,
+        attachments: [newAttachment]
+      }));
+    }
   };
 
   // Remove attachment from new todo
-  const removeTodoAttachment = (id) => {
+  const removeTodoAttachment = (index) => {
     setNewTodo(prev => {
-      const attachments = prev.attachments.filter(attachment => attachment.id !== id);
+      const attachments = [...prev.attachments];
+      attachments.splice(index, 1);
       return { ...prev, attachments };
     });
   };
 
-  // Upload file to Cloudflare R2
-  const uploadFileToR2 = async (file) => {
-    try {
-      console.log('Uploading file to server:', file.name);
-      // Use the dedicated upload method from tasksAPI
-      const result = await tasksAPI.uploadFile(file);
-      console.log('Upload result:', result);
-      
-      // Check if the result is valid
-      if (!result) {
-        throw new Error('No response received from server');
-      }
-      
-      // Extract the uploaded file URL from the task attachments
-      if (result.task && result.task.attachments && Array.isArray(result.task.attachments) && result.task.attachments.length > 0) {
-        // Find the attachment that matches our uploaded file
-        const uploadedAttachment = result.task.attachments.find(attachment => 
-          attachment.name === file.name
-        ) || result.task.attachments[0]; // Fallback to first attachment
-        
-        if (uploadedAttachment && uploadedAttachment.url) {
-          console.log('Successfully uploaded file URL:', uploadedAttachment.url);
-          return uploadedAttachment.url; // Return the uploaded file URL
-        } else {
-          console.error('Uploaded attachment missing URL:', uploadedAttachment);
-          throw new Error('Uploaded file missing URL');
-        }
-      } else {
-        console.error('Invalid response structure:', result);
-        throw new Error('Invalid response from server: missing attachments');
-      }
-    } catch (error) {
-      console.error('Error uploading file to R2:', error);
-      // Provide more detailed error information
-      if (error.message) {
-        throw new Error(`File upload failed: ${error.message}`);
-      } else {
-        throw new Error('File upload failed: Unknown error occurred');
-      }
-    }
-  };
-
-  // Add new todo item with file uploads
-  const addNewTodo = async () => {
+  // Add new todo item
+  const addNewTodo = () => {
     if (newTodo.title.trim() === '') return;
     
-    try {
-      console.log('Adding new todo with attachments:', newTodo);
-      
-      // Upload any file attachments to Cloudflare R2
-      const attachmentsWithUrls = [];
-      const filesToUpload = [];
-      const linkAttachments = [];
-      
-      for (const attachment of newTodo.attachments) {
-        if (attachment.file) {
-          // This is a file that needs to be uploaded
-          filesToUpload.push(attachment);
-        } else if (attachment.type === 'link' && attachment.url) {
-          // This is a link attachment
-          linkAttachments.push(attachment);
-        }
-      }
-      
-      console.log('Files to upload:', filesToUpload.length);
-      console.log('Link attachments:', linkAttachments.length);
-      
-      // Upload all files
-      const uploadedAttachments = [];
-      for (let i = 0; i < filesToUpload.length; i++) {
-        const fileAttachment = filesToUpload[i];
-        
-        try {
-          console.log('Uploading file:', fileAttachment.name);
-          const uploadedUrl = await uploadFileToR2(fileAttachment.file);
-          console.log('File uploaded successfully:', uploadedUrl);
-          
-          uploadedAttachments.push({
-            id: fileAttachment.id,
-            type: fileAttachment.type,
-            url: uploadedUrl,
-            name: fileAttachment.name,
-            size: fileAttachment.size
-          });
-        } catch (uploadError) {
-          console.error('Error uploading file:', uploadError);
-          throw new Error(`Failed to upload file "${fileAttachment.name}": ${uploadError.message || 'Unknown error'}`);
-        }
-      }
-      
-      // Combine all attachments
-      const allAttachments = [...uploadedAttachments, ...linkAttachments];
-      console.log('All attachments:', allAttachments);
-      
-      const newTodoItem = {
-        id: `todo${Date.now()}`,
-        ...newTodo,
-        completed: false,
-        assignedDate: null,
-        attachments: allAttachments
-      };
-      
-      setTodoList(prev => [...prev, newTodoItem]);
-      setNewTodo({
-        title: '',
-        description: '',
-        priority: 'medium',
-        estimated_hours: 1.00,
-        attachments: []
-      });
-      setShowTodoForm(false);
-      
-      console.log('Todo added successfully');
-    } catch (error) {
-      console.error('Error adding todo with attachments:', error);
-      alert(`Failed to add todo with attachments: ${error.message || 'Please try again.'}`);
-    }
+    const newTodoItem = {
+      id: `todo${Date.now()}`,
+      ...newTodo,
+      completed: false,
+      assignedDate: null,
+      attachments: newTodo.attachments || []
+    };
+    
+    setTodoList(prev => [...prev, newTodoItem]);
+    setNewTodo({
+      title: '',
+      description: '',
+      priority: 'medium',
+      estimated_hours: 1.00,
+      attachments: []
+    });
+    setShowTodoForm(false);
+  };
+
+  // Delete todo item
+  const deleteTodo = (id) => {
+    setTodoList(prev => prev.filter(todo => todo.id !== id));
   };
 
   // Handle drag action change
@@ -753,12 +673,6 @@ const EnhancedCalendar = ({ view: propView }) => {
 
   // Check if we're in "My Tasks" view
   const isMyTasksView = isMyTasksMode;
-
-  // Helper function to truncate text
-  const truncateText = (text, maxLength = 20) => {
-    if (!text) return '';
-    return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
-  };
 
   return (
     <div className="p-6">
@@ -1030,7 +944,25 @@ const EnhancedCalendar = ({ view: propView }) => {
 
         {/* Todo List Section */}
         <div className="w-full lg:w-80">
-          <div className="bg-white rounded-lg shadow p-4">
+          <div 
+            className="bg-white rounded-lg shadow p-4"
+            onDragOver={(e) => {
+              e.preventDefault();
+              // Check if we're dragging a task (not a todo)
+              const taskData = e.dataTransfer.getData('text/plain');
+              if (taskData) {
+                try {
+                  const parsedData = JSON.parse(taskData);
+                  if (parsedData.source !== 'todo') {
+                    e.dataTransfer.dropEffect = dragAction === 'copy' ? 'copy' : 'move';
+                  }
+                } catch (error) {
+                  // Not a valid JSON, ignore
+                }
+              }
+            }}
+            onDrop={handleTaskDropOnTodoList}
+          >
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
               <button
@@ -1062,7 +994,7 @@ const EnhancedCalendar = ({ view: propView }) => {
                     rows="2"
                   />
                   
-                  {/* Attachments for todo - supporting all file types */}
+                  {/* Attachments for todo - matching TaskForm implementation */}
                   <div className="border-t border-gray-200 pt-3">
                     <div className="flex justify-between items-center mb-2">
                       <h4 className="text-sm font-medium text-gray-700">Attachments</h4>
@@ -1073,94 +1005,48 @@ const EnhancedCalendar = ({ view: propView }) => {
                       )}
                     </div>
                     
-                    {/* Add Attachment Form - supporting files and links */}
+                    {/* Add Attachment Form - simplified version of TaskForm */}
                     <div className="bg-gray-50 p-2 rounded-md mb-2">
-                      <div className="grid grid-cols-1 gap-2 mb-2">
-                        <select
-                          className="p-1 border rounded text-xs"
-                          defaultValue="link"
-                          onChange={(e) => {
-                            // This is just for UI, actual handling is in the file input
-                          }}
-                        >
-                          <option value="link">Link</option>
-                          <option value="file">File (Photo/Video/Document)</option>
-                        </select>
-                        
-                        {/* Link input */}
+                      <div className="grid grid-cols-1 gap-1 mb-1">
                         <input
                           type="url"
                           name="url"
-                          value={newTodo.attachments.find(a => a.type === 'link')?.url || ''}
-                          onChange={(e) => {
-                            const linkAttachment = newTodo.attachments.find(a => a.type === 'link');
-                            if (linkAttachment) {
-                              removeTodoAttachment(linkAttachment.id);
-                            }
-                            if (e.target.value) {
-                              const newAttachment = {
-                                id: Date.now(),
-                                type: 'link',
-                                url: e.target.value,
-                                name: e.target.value
-                              };
-                              setNewTodo(prev => ({
-                                ...prev,
-                                attachments: [...prev.attachments.filter(a => a.type !== 'link'), newAttachment]
-                              }));
-                            }
-                          }}
+                          value={newTodo.attachments && newTodo.attachments.length > 0 ? newTodo.attachments[0]?.url || '' : ''}
+                          onChange={handleTodoAttachmentChange}
                           placeholder="Enter URL"
                           className="p-1 border rounded text-xs"
                         />
-                        
-                        {/* File upload */}
-                        <label className="px-2 py-1 bg-white text-gray-700 border border-gray-300 rounded text-xs text-center cursor-pointer hover:bg-gray-50">
-                          <span>Choose Files (Multiple Selection Allowed)</span>
-                          <input
-                            type="file"
-                            className="hidden"
-                            onChange={handleTodoFileUpload}
-                            accept="image/*,video/*,.pdf,.doc,.docx,.txt,.xls,.xlsx"
-                            multiple
-                          />
-                        </label>
+                        <input
+                          type="text"
+                          name="name"
+                          value={newTodo.attachments && newTodo.attachments.length > 0 ? newTodo.attachments[0]?.name || '' : ''}
+                          onChange={handleTodoAttachmentChange}
+                          placeholder="Link name (optional)"
+                          className="p-1 border rounded text-xs"
+                        />
+                        <button
+                          type="button"
+                          onClick={addTodoAttachment}
+                          className="px-2 py-1 bg-indigo-600 text-white rounded text-xs hover:bg-indigo-700"
+                        >
+                          Add Link
+                        </button>
                       </div>
                     </div>
                     
-                    {/* Attachment List - showing all types */}
+                    {/* Attachment List - matching TaskForm */}
                     <div className="space-y-1">
-                      {newTodo.attachments.map((attachment) => (
+                      {newTodo.attachments.map((attachment, index) => (
                         <div key={attachment.id} className="flex items-center justify-between p-1 bg-white border rounded">
                           <div className="flex items-center">
-                            {/* Show appropriate icon based on attachment type */}
-                            {attachment.type === 'photo' ? (
-                              <svg className="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                            ) : attachment.type === 'video' ? (
-                              <svg className="w-4 h-4 text-purple-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
-                              </svg>
-                            ) : attachment.type === 'document' ? (
-                              <svg className="w-4 h-4 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                              </svg>
-                            ) : (
-                              <svg className="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                              </svg>
-                            )}
-                            <span className="text-xs truncate max-w-[100px]">{truncateText(attachment.name, 20)}</span>
-                            {attachment.size && (
-                              <span className="text-xs text-gray-500 ml-1 flex-shrink-0">
-                                ({(attachment.size / 1024).toFixed(1)}KB)
-                              </span>
-                            )}
+                            <svg className="w-4 h-4 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                            </svg>
+                            <span className="text-xs truncate max-w-[120px]">{attachment.name}</span>
                           </div>
                           <button
                             type="button"
-                            onClick={() => removeTodoAttachment(attachment.id)}
+                            onClick={() => removeTodoAttachment(index)}
                             className="text-red-500 hover:text-red-700"
                           >
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1282,30 +1168,10 @@ const EnhancedCalendar = ({ view: propView }) => {
                             <div className="space-y-1">
                               {todo.attachments.map((attachment, index) => (
                                 <div key={index} className="flex items-center text-xs p-1 bg-gray-50 rounded">
-                                  {/* Show appropriate icon based on attachment type */}
-                                  {attachment.type === 'photo' ? (
-                                    <svg className="w-3 h-3 text-green-500 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
-                                  ) : attachment.type === 'video' ? (
-                                    <svg className="w-3 h-3 text-purple-500 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
-                                    </svg>
-                                  ) : attachment.type === 'document' ? (
-                                    <svg className="w-3 h-3 text-blue-500 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                  ) : (
-                                    <svg className="w-3 h-3 text-green-500 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                                    </svg>
-                                  )}
-                                  <span className="truncate max-w-[100px]">{truncateText(attachment.name || attachment.url, 20)}</span>
-                                  {attachment.size && (
-                                    <span className="text-gray-500 ml-1 flex-shrink-0">
-                                      ({(attachment.size / 1024).toFixed(1)}KB)
-                                    </span>
-                                  )}
+                                  <svg className="w-3 h-3 text-blue-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                  </svg>
+                                  <span className="truncate">{attachment.name || attachment.url}</span>
                                 </div>
                               ))}
                             </div>
