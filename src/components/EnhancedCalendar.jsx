@@ -344,8 +344,7 @@ const EnhancedCalendar = ({ view: propView }) => {
   // Handle drag start
   const handleDragStart = (e, task) => {
     if (!isAdmin) return;
-    // Include source information to distinguish between tasks and todos
-    e.dataTransfer.setData('text/plain', JSON.stringify({ ...task, source: 'task' }));
+    setDraggedTask(task);
     e.dataTransfer.effectAllowed = 'move';
     // Set drag image to improve UX
     const dragImage = document.createElement('div');
@@ -380,11 +379,36 @@ const EnhancedCalendar = ({ view: propView }) => {
     }
   };
 
-  // Handle drop
+  // Handle drop on calendar day (updated to handle both tasks and todos)
   const handleDrop = async (e, day) => {
     e.preventDefault();
-    if (!isAdmin || !draggedTask || !day) return;
+    if (!isAdmin || !day) return;
     
+    const data = e.dataTransfer.getData('text/plain');
+    if (!data) return;
+    
+    try {
+      const parsedData = JSON.parse(data);
+      
+      // Check what type of item is being dropped
+      if (parsedData.source === 'task') {
+        // Moving a task from one day to another
+        await moveTaskToDay(parsedData, day);
+      } else if (parsedData.source === 'todo') {
+        // Moving a todo to a calendar day (convert to task)
+        await convertTodoToTask(parsedData, day);
+      }
+    } catch (error) {
+      console.error('Error handling drop:', error);
+      alert(`Failed to handle drop: ${error.message}`);
+    } finally {
+      setDraggedTask(null);
+      setDropTarget(null);
+    }
+  };
+
+  // Function to move a task to a new day
+  const moveTaskToDay = async (taskData, day) => {
     // Create a date string for the target day (this ensures we keep the correct calendar day)
     const year = selectedYear;
     const month = String(selectedMonth + 1).padStart(2, '0'); // Months are 0-indexed
@@ -396,7 +420,7 @@ const EnhancedCalendar = ({ view: propView }) => {
     const targetDate = new Date(selectedYear, selectedMonth, day, 12, 0, 0);
     const formattedDate = targetDate.toISOString();
     
-    console.log('Moving task:', draggedTask.id);
+    console.log('Moving task:', taskData.id);
     console.log('Target date string:', targetDateStr);
     console.log('Target date (noon):', targetDate);
     console.log('Formatted date for backend:', formattedDate);
@@ -407,7 +431,7 @@ const EnhancedCalendar = ({ view: propView }) => {
         created_at: formattedDate
       };
       
-      const result = await updateTask(draggedTask.id, updatedTaskData);
+      const result = await updateTask(taskData.id, updatedTaskData);
       
       console.log('Update task result:', result);
       
@@ -425,15 +449,65 @@ const EnhancedCalendar = ({ view: propView }) => {
     } catch (error) {
       console.error('Error moving task:', error);
       alert(`Failed to move task: ${error.message}`);
-    } finally {
-      setDraggedTask(null);
-      setDropTarget(null);
+    }
+  };
+
+  // Function to convert a todo to a task on a specific day
+  const convertTodoToTask = async (todoData, day) => {
+    // Create the date string for the backend in a way that preserves the calendar day
+    const year = selectedYear;
+    const month = String(selectedMonth + 1).padStart(2, '0'); // Months are 0-indexed
+    const dayStr = String(day).padStart(2, '0');
+    const targetDateStr = `${year}-${month}-${dayStr}`;
+    
+    // Create the date string for the backend in a way that preserves the calendar day
+    // We'll create a date at noon to avoid timezone conversion issues
+    const targetDate = new Date(selectedYear, selectedMonth, day, 12, 0, 0);
+    const formattedDate = targetDate.toISOString();
+    
+    try {
+      // Create a new task based on the todo item
+      const newTaskData = {
+        title: todoData.title,
+        description: todoData.description || 'Task created from todo list',
+        created_at: formattedDate,
+        due_date: formattedDate,
+        priority: todoData.priority || 'medium',
+        status: 'planned',
+        assigned_to: currentUser?.id || null,
+        estimated_hours: todoData.estimated_hours || 1.00
+      };
+      
+      const result = await createTask(newTaskData);
+      
+      if (result.error) {
+        console.error('Error creating task:', result.error);
+        alert(`Failed to create task: ${result.error}`);
+      } else {
+        console.log('Task created successfully:', result.task);
+        
+        // If moving (not copying), remove from todo list
+        if (dragAction === 'move') {
+          setTodoList(prev => prev.filter(t => t.id !== todoData.id));
+        } else {
+          // If copying, update todo list to show assigned date
+          setTodoList(prev => prev.map(t => 
+            t.id === todoData.id ? { ...t, assignedDate: targetDate } : t
+          ));
+        }
+        
+        // Show success message
+        console.log('Task created successfully!');
+      }
+    } catch (error) {
+      console.error('Error creating task:', error);
+      alert(`Failed to create task: ${error.message}`);
     }
   };
 
   // Handle todo list drag start
   const handleTodoDragStart = (e, todo) => {
-    e.dataTransfer.setData('text/plain', JSON.stringify({ ...todo, source: 'todo' }));
+    e.dataTransfer.setData('text/plain', JSON.stringify(todo));
     e.dataTransfer.effectAllowed = dragAction === 'copy' ? 'copy' : 'move';
   };
 
@@ -494,37 +568,6 @@ const EnhancedCalendar = ({ view: propView }) => {
     } catch (error) {
       console.error('Error creating task:', error);
       alert(`Failed to create task: ${error.message}`);
-    }
-  };
-
-  // Handle task drop on todo list
-  const handleTaskDropOnTodoList = async (e) => {
-    e.preventDefault();
-    const taskData = e.dataTransfer.getData('text/plain');
-    if (!taskData) return;
-    
-    const task = JSON.parse(taskData);
-    if (!task) return;
-    
-    try {
-      // Update task to remove created_at date
-      const updatedTaskData = {
-        created_at: null
-      };
-      
-      const result = await updateTask(task.id, updatedTaskData);
-      
-      if (result.error) {
-        console.error('Error updating task:', result.error);
-        alert(`Failed to remove task from calendar: ${result.error}`);
-      } else {
-        console.log('Task removed from calendar successfully:', result.task);
-        // Show success message
-        console.log('Task removed from calendar successfully!');
-      }
-    } catch (error) {
-      console.error('Error removing task from calendar:', error);
-      alert(`Failed to remove task from calendar: ${error.message}`);
     }
   };
 
@@ -944,25 +987,7 @@ const EnhancedCalendar = ({ view: propView }) => {
 
         {/* Todo List Section */}
         <div className="w-full lg:w-80">
-          <div 
-            className="bg-white rounded-lg shadow p-4"
-            onDragOver={(e) => {
-              e.preventDefault();
-              // Check if we're dragging a task (not a todo)
-              const taskData = e.dataTransfer.getData('text/plain');
-              if (taskData) {
-                try {
-                  const parsedData = JSON.parse(taskData);
-                  if (parsedData.source !== 'todo') {
-                    e.dataTransfer.dropEffect = dragAction === 'copy' ? 'copy' : 'move';
-                  }
-                } catch (error) {
-                  // Not a valid JSON, ignore
-                }
-              }
-            }}
-            onDrop={handleTaskDropOnTodoList}
-          >
+          <div className="bg-white rounded-lg shadow p-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
               <button
