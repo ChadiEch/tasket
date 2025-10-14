@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import TaskDetail from './tasks/TaskDetail'
 import DeleteConfirmationDialog from './tasks/DeleteConfirmationDialog'
+import { tasksAPI } from '../lib/api' // Import tasksAPI for file uploads
 
 const EnhancedCalendar = ({ view: propView }) => {
   const { tasks, navigateToDayView, selectedEmployee, navigateToCalendar, currentUser, isAdmin, deleteTask, updateTask, createTask, updateTaskStatus } = useApp()
@@ -513,7 +514,7 @@ const EnhancedCalendar = ({ view: propView }) => {
     e.dataTransfer.effectAllowed = dragAction === 'copy' ? 'copy' : 'move';
   };
 
-  // Handle todo drop on calendar day (updated to properly handle copy vs move)
+  // Handle todo drop on calendar day (updated to properly handle copy vs move with file uploads)
   const handleTodoDrop = async (e, day) => {
     e.preventDefault();
     const todoData = e.dataTransfer.getData('text/plain');
@@ -534,6 +535,64 @@ const EnhancedCalendar = ({ view: propView }) => {
     const formattedDate = targetDate.toISOString();
     
     try {
+      // Upload any file attachments to Cloudflare R2
+      const attachmentsWithUrls = [];
+      const filesToUpload = [];
+      const linkAttachments = [];
+      
+      for (const attachment of todo.attachments) {
+        if (attachment.file) {
+          // This is a file that needs to be uploaded
+          filesToUpload.push(attachment);
+        } else if (attachment.type === 'link' && attachment.url) {
+          // This is a link attachment
+          linkAttachments.push(attachment);
+        }
+      }
+      
+      // Upload all files
+      const uploadedAttachments = [];
+      for (let i = 0; i < filesToUpload.length; i++) {
+        const fileAttachment = filesToUpload[i];
+        
+        try {
+          console.log('Uploading file:', fileAttachment.name);
+          const result = await tasksAPI.uploadFile(fileAttachment.file);
+          console.log('File uploaded successfully:', result);
+          
+          // Extract the uploaded file URL from the task attachments
+          if (result.task && result.task.attachments && Array.isArray(result.task.attachments) && result.task.attachments.length > 0) {
+            // Find the attachment that matches our uploaded file
+            const uploadedAttachment = result.task.attachments.find(attachment => 
+              attachment.name === fileAttachment.name
+            ) || result.task.attachments[0]; // Fallback to first attachment
+            
+            if (uploadedAttachment && uploadedAttachment.url) {
+              console.log('Successfully uploaded file URL:', uploadedAttachment.url);
+              uploadedAttachments.push({
+                id: fileAttachment.id,
+                type: fileAttachment.type,
+                url: uploadedAttachment.url,
+                name: fileAttachment.name,
+                size: fileAttachment.size
+              });
+            } else {
+              console.error('Uploaded attachment missing URL:', uploadedAttachment);
+              throw new Error('Uploaded file missing URL');
+            }
+          } else {
+            console.error('Invalid response structure:', result);
+            throw new Error('Invalid response from server: missing attachments');
+          }
+        } catch (uploadError) {
+          console.error('Error uploading file:', uploadError);
+          throw new Error(`Failed to upload file "${fileAttachment.name}": ${uploadError.message || 'Unknown error'}`);
+        }
+      }
+      
+      // Combine all attachments
+      const allAttachments = [...uploadedAttachments, ...linkAttachments];
+      
       // Create a new task based on the todo item
       const newTaskData = {
         title: todo.title,
@@ -544,7 +603,7 @@ const EnhancedCalendar = ({ view: propView }) => {
         status: 'planned',
         assigned_to: currentUser?.id || null,
         estimated_hours: todo.estimated_hours || 1.00,
-        attachments: todo.attachments || [] // Include attachments from todo
+        attachments: allAttachments // Include attachments with uploaded URLs
       };
       
       const result = await createTask(newTaskData);
@@ -570,7 +629,7 @@ const EnhancedCalendar = ({ view: propView }) => {
       }
     } catch (error) {
       console.error('Error creating task:', error);
-      alert(`Failed to create task: ${error.message}`);
+      alert(`Failed to create task: ${error.message || 'Please try again.'}`);
     }
   };
 
@@ -689,42 +748,94 @@ const EnhancedCalendar = ({ view: propView }) => {
   const addNewTodo = async () => {
     if (newTodo.title.trim() === '') return;
     
-    // Create attachment objects for each file
-    const attachmentsWithUrls = [];
-    const filesToUpload = [];
-    const linkAttachments = [];
-    
-    for (const attachment of newTodo.attachments) {
-      if (attachment.file) {
-        // This is a file that needs to be uploaded
-        filesToUpload.push(attachment);
-      } else if (attachment.type === 'link' && attachment.url) {
-        // This is a link attachment
-        linkAttachments.push(attachment);
+    try {
+      console.log('Adding new todo with attachments:', newTodo);
+      
+      // Upload any file attachments to Cloudflare R2
+      const attachmentsWithUrls = [];
+      const filesToUpload = [];
+      const linkAttachments = [];
+      
+      for (const attachment of newTodo.attachments) {
+        if (attachment.file) {
+          // This is a file that needs to be uploaded
+          filesToUpload.push(attachment);
+        } else if (attachment.type === 'link' && attachment.url) {
+          // This is a link attachment
+          linkAttachments.push(attachment);
+        }
       }
+      
+      console.log('Files to upload:', filesToUpload.length);
+      console.log('Link attachments:', linkAttachments.length);
+      
+      // Upload all files
+      const uploadedAttachments = [];
+      for (let i = 0; i < filesToUpload.length; i++) {
+        const fileAttachment = filesToUpload[i];
+        
+        try {
+          console.log('Uploading file:', fileAttachment.name);
+          const result = await tasksAPI.uploadFile(fileAttachment.file);
+          console.log('File uploaded successfully:', result);
+          
+          // Extract the uploaded file URL from the task attachments
+          if (result.task && result.task.attachments && Array.isArray(result.task.attachments) && result.task.attachments.length > 0) {
+            // Find the attachment that matches our uploaded file
+            const uploadedAttachment = result.task.attachments.find(attachment => 
+              attachment.name === fileAttachment.name
+            ) || result.task.attachments[0]; // Fallback to first attachment
+            
+            if (uploadedAttachment && uploadedAttachment.url) {
+              console.log('Successfully uploaded file URL:', uploadedAttachment.url);
+              uploadedAttachments.push({
+                id: fileAttachment.id,
+                type: fileAttachment.type,
+                url: uploadedAttachment.url,
+                name: fileAttachment.name,
+                size: fileAttachment.size
+              });
+            } else {
+              console.error('Uploaded attachment missing URL:', uploadedAttachment);
+              throw new Error('Uploaded file missing URL');
+            }
+          } else {
+            console.error('Invalid response structure:', result);
+            throw new Error('Invalid response from server: missing attachments');
+          }
+        } catch (uploadError) {
+          console.error('Error uploading file:', uploadError);
+          throw new Error(`Failed to upload file "${fileAttachment.name}": ${uploadError.message || 'Unknown error'}`);
+        }
+      }
+      
+      // Combine all attachments
+      const allAttachments = [...uploadedAttachments, ...linkAttachments];
+      console.log('All attachments:', allAttachments);
+      
+      const newTodoItem = {
+        id: `todo${Date.now()}`,
+        ...newTodo,
+        completed: false,
+        assignedDate: null,
+        attachments: allAttachments
+      };
+      
+      setTodoList(prev => [...prev, newTodoItem]);
+      setNewTodo({
+        title: '',
+        description: '',
+        priority: 'medium',
+        estimated_hours: 1.00,
+        attachments: []
+      });
+      setShowTodoForm(false);
+      
+      console.log('Todo added successfully');
+    } catch (error) {
+      console.error('Error adding todo with attachments:', error);
+      alert(`Failed to add todo with attachments: ${error.message || 'Please try again.'}`);
     }
-    
-    // For now, we'll just add the attachments as-is to the todo
-    // In a real implementation, we would upload the files to the server
-    const allAttachments = [...filesToUpload, ...linkAttachments];
-    
-    const newTodoItem = {
-      id: `todo${Date.now()}`,
-      ...newTodo,
-      completed: false,
-      assignedDate: null,
-      attachments: allAttachments
-    };
-    
-    setTodoList(prev => [...prev, newTodoItem]);
-    setNewTodo({
-      title: '',
-      description: '',
-      priority: 'medium',
-      estimated_hours: 1.00,
-      attachments: []
-    });
-    setShowTodoForm(false);
   };
 
   // Delete todo item
@@ -1173,7 +1284,7 @@ const EnhancedCalendar = ({ view: propView }) => {
                               </svg>
                             ) : attachment.type === 'document' ? (
                               <svg className="w-4 h-4 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 00-2-2H5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                               </svg>
                             ) : (
                               <svg className="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
