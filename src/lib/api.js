@@ -402,6 +402,57 @@ export const tasksAPI = {
       method: 'DELETE',
     });
   },
+
+  // Add a dedicated file upload method
+  uploadFile: async (file, onUploadProgress) => {
+    try {
+      const formData = new FormData();
+      
+      // Create a minimal but valid task data object for the upload
+      const taskData = {
+        title: 'File Upload - ' + (file.name || 'Attachment'),
+        description: 'File uploaded via todo list',
+        created_at: new Date().toISOString(),
+        due_date: new Date().toISOString(),
+        priority: 'medium',
+        status: 'planned',
+        estimated_hours: 0.01, // Minimum valid value
+        attachments: [] // Will be populated with the uploaded file
+      };
+      
+      // Append task data as JSON string
+      formData.append('data', JSON.stringify(taskData));
+      
+      // Append the file
+      formData.append('attachments', file);
+      
+      // For FormData requests, we don't set Content-Type header
+      // Browser will set it with boundary automatically
+      const config = {
+        method: 'POST',
+        body: formData,
+      };
+      
+      // Add progress callback if provided
+      if (onUploadProgress) {
+        config.onUploadProgress = onUploadProgress;
+      }
+      
+      console.log('Uploading file to server:', file.name);
+      const result = await apiRequest('/tasks', config);
+      console.log('File upload result:', result);
+      
+      return result;
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      // Provide more detailed error information
+      if (error.message) {
+        throw new Error(`File upload failed: ${error.message}`);
+      } else {
+        throw new Error('File upload failed: Unknown error occurred');
+      }
+    }
+  },
 };
 
 // Departments API
