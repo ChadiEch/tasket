@@ -17,9 +17,9 @@ const EnhancedCalendar = ({ view: propView }) => {
   const [draggedTask, setDraggedTask] = useState(null) // State for dragged task
   const [dropTarget, setDropTarget] = useState(null) // State for drop target
   
-  // State for todo list with localStorage persistence
+  // State for todo list with localStorage persistence per user
   const [todoList, setTodoList] = useState(() => {
-    const savedTodos = localStorage.getItem('calendarTodos');
+    const savedTodos = localStorage.getItem(`calendarTodos_${currentUser?.id || 'guest'}`);
     return savedTodos ? JSON.parse(savedTodos) : [
       { id: 'todo1', title: 'Review project documentation', description: '', completed: false, assignedDate: null, priority: 'medium', estimated_hours: 1.00, attachments: [] },
       { id: 'todo2', title: 'Prepare meeting agenda', description: '', completed: false, assignedDate: null, priority: 'high', estimated_hours: 0.50, attachments: [] },
@@ -38,10 +38,10 @@ const EnhancedCalendar = ({ view: propView }) => {
 
   const today = new Date();
 
-  // Save todo list to localStorage whenever it changes
+  // Save todo list to localStorage whenever it changes, scoped to current user
   useEffect(() => {
-    localStorage.setItem('calendarTodos', JSON.stringify(todoList));
-  }, [todoList]);
+    localStorage.setItem(`calendarTodos_${currentUser?.id || 'guest'}`, JSON.stringify(todoList));
+  }, [todoList, currentUser?.id]);
 
   // Check if there's a task to view when component mounts or when tasks change
   useEffect(() => {
@@ -568,6 +568,15 @@ const EnhancedCalendar = ({ view: propView }) => {
     }
   };
 
+  // Remove attachment from new todo
+  const removeTodoAttachment = (index) => {
+    setNewTodo(prev => {
+      const attachments = [...prev.attachments];
+      attachments.splice(index, 1);
+      return { ...prev, attachments };
+    });
+  };
+
   // Add new todo item
   const addNewTodo = () => {
     if (newTodo.title.trim() === '') return;
@@ -935,54 +944,71 @@ const EnhancedCalendar = ({ view: propView }) => {
                     rows="2"
                   />
                   
-                  {/* Attachments for todo */}
-                  <div className="border-t border-gray-200 pt-2">
-                    <h4 className="text-xs font-medium text-gray-500 mb-1">Attachments</h4>
-                    {newTodo.attachments && newTodo.attachments.length > 0 && newTodo.attachments[0].url ? (
-                      <div className="space-y-1">
-                        <div className="flex items-center text-xs p-1 bg-white rounded">
-                          <span className="flex-1 truncate">{newTodo.attachments[0].name || newTodo.attachments[0].url}</span>
-                          <button 
+                  {/* Attachments for todo - matching TaskForm implementation */}
+                  <div className="border-t border-gray-200 pt-3">
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="text-sm font-medium text-gray-700">Attachments</h4>
+                      {newTodo.attachments.length > 0 && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {newTodo.attachments.length} attached
+                        </span>
+                      )}
+                    </div>
+                    
+                    {/* Add Attachment Form - simplified version of TaskForm */}
+                    <div className="bg-gray-50 p-2 rounded-md mb-2">
+                      <div className="grid grid-cols-1 gap-1 mb-1">
+                        <input
+                          type="url"
+                          name="url"
+                          value={newTodo.attachments && newTodo.attachments.length > 0 ? newTodo.attachments[0]?.url || '' : ''}
+                          onChange={handleTodoAttachmentChange}
+                          placeholder="Enter URL"
+                          className="p-1 border rounded text-xs"
+                        />
+                        <input
+                          type="text"
+                          name="name"
+                          value={newTodo.attachments && newTodo.attachments.length > 0 ? newTodo.attachments[0]?.name || '' : ''}
+                          onChange={handleTodoAttachmentChange}
+                          placeholder="Link name (optional)"
+                          className="p-1 border rounded text-xs"
+                        />
+                        <button
+                          type="button"
+                          onClick={addTodoAttachment}
+                          className="px-2 py-1 bg-indigo-600 text-white rounded text-xs hover:bg-indigo-700"
+                        >
+                          Add Link
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {/* Attachment List - matching TaskForm */}
+                    <div className="space-y-1">
+                      {newTodo.attachments.map((attachment, index) => (
+                        <div key={attachment.id} className="flex items-center justify-between p-1 bg-white border rounded">
+                          <div className="flex items-center">
+                            <svg className="w-4 h-4 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                            </svg>
+                            <span className="text-xs truncate max-w-[120px]">{attachment.name}</span>
+                          </div>
+                          <button
                             type="button"
-                            onClick={() => {
-                              setNewTodo(prev => ({ ...prev, attachments: [] }));
-                            }}
-                            className="text-red-500 hover:text-red-700 ml-2"
+                            onClick={() => removeTodoAttachment(index)}
+                            className="text-red-500 hover:text-red-700"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                           </button>
                         </div>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-gray-500 italic">No attachments added</p>
-                    )}
-                    
-                    <div className="mt-2 flex">
-                      <input
-                        type="text"
-                        name="url"
-                        placeholder="Attachment URL"
-                        value={newTodo.attachments && newTodo.attachments.length > 0 ? newTodo.attachments[0]?.url || '' : ''}
-                        onChange={handleTodoAttachmentChange}
-                        className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded-l focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                      />
-                      <input
-                        type="text"
-                        name="name"
-                        placeholder="Name (optional)"
-                        value={newTodo.attachments && newTodo.attachments.length > 0 ? newTodo.attachments[0]?.name || '' : ''}
-                        onChange={handleTodoAttachmentChange}
-                        className="flex-1 px-2 py-1 text-xs border-t border-b border-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                      />
-                      <button
-                        type="button"
-                        onClick={addTodoAttachment}
-                        className="px-2 py-1 bg-indigo-600 text-white text-xs rounded-r hover:bg-indigo-700"
-                      >
-                        Add
-                      </button>
+                      ))}
+                      
+                      {newTodo.attachments.length === 0 && (
+                        <p className="text-xs text-gray-500 italic">No attachments added</p>
+                      )}
                     </div>
                   </div>
                   
@@ -1023,7 +1049,7 @@ const EnhancedCalendar = ({ view: propView }) => {
                 </div>
               </div>
             )}
-            
+
             {/* Drag action selector */}
             <div className="mb-4 flex space-x-2">
               <button
@@ -1087,23 +1113,21 @@ const EnhancedCalendar = ({ view: propView }) => {
                           </p>
                         )}
                         {todo.attachments && todo.attachments.length > 0 && (
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {todo.attachments.slice(0, 3).map((attachment, index) => (
-                              <span key={index} className="inline-flex items-center px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
-                                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                                </svg>
-                                Link
-                              </span>
-                            ))}
-                            {todo.attachments.length > 3 && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
-                                +{todo.attachments.length - 3}
-                              </span>
-                            )}
+                          <div className="mt-2">
+                            <h5 className="text-xs font-medium text-gray-600 mb-1">Attachments:</h5>
+                            <div className="space-y-1">
+                              {todo.attachments.map((attachment, index) => (
+                                <div key={index} className="flex items-center text-xs p-1 bg-gray-50 rounded">
+                                  <svg className="w-3 h-3 text-blue-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                  </svg>
+                                  <span className="truncate">{attachment.name || attachment.url}</span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         )}
-                        <div className="flex items-center mt-1">
+                        <div className="flex items-center mt-2">
                           <span className={`inline-block w-2 h-2 rounded-full mr-1 ${
                             todo.priority === 'low' ? 'bg-green-500' :
                             todo.priority === 'medium' ? 'bg-yellow-500' :
