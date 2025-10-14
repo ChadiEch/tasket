@@ -552,57 +552,117 @@ const EnhancedCalendar = ({ view: propView }) => {
     });
   };
 
-  // Add attachment to new todo
-  const addTodoAttachment = () => {
-    if (newTodo.attachments && newTodo.attachments.length > 0 && newTodo.attachments[0].url) {
-      const newAttachment = {
-        id: Date.now(),
-        type: 'link',
-        url: newTodo.attachments[0].url,
-        name: newTodo.attachments[0].name || newTodo.attachments[0].url
+  // Handle file upload for todo attachments
+  const handleTodoFileUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+    
+    // Create attachment objects for each file
+    const fileAttachments = files.map((file, index) => {
+      let type = 'document'; // Default type
+      if (file.type.startsWith('image/')) {
+        type = 'photo';
+      } else if (file.type.startsWith('video/')) {
+        type = 'video';
+      }
+      
+      return {
+        id: Date.now() + index,
+        type: type,
+        file: file,
+        name: file.name,
+        size: file.size,
+        url: URL.createObjectURL(file) // For preview only
       };
-      setNewTodo(prev => ({
-        ...prev,
-        attachments: [newAttachment]
-      }));
-    }
+    });
+    
+    // Add to newTodo attachments
+    setNewTodo(prev => ({
+      ...prev,
+      attachments: [...prev.attachments, ...fileAttachments]
+    }));
   };
 
   // Remove attachment from new todo
-  const removeTodoAttachment = (index) => {
+  const removeTodoAttachment = (id) => {
     setNewTodo(prev => {
-      const attachments = [...prev.attachments];
-      attachments.splice(index, 1);
+      const attachments = prev.attachments.filter(attachment => attachment.id !== id);
       return { ...prev, attachments };
     });
   };
 
-  // Add new todo item
-  const addNewTodo = () => {
-    if (newTodo.title.trim() === '') return;
-    
-    const newTodoItem = {
-      id: `todo${Date.now()}`,
-      ...newTodo,
-      completed: false,
-      assignedDate: null,
-      attachments: newTodo.attachments || []
-    };
-    
-    setTodoList(prev => [...prev, newTodoItem]);
-    setNewTodo({
-      title: '',
-      description: '',
-      priority: 'medium',
-      estimated_hours: 1.00,
-      attachments: []
-    });
-    setShowTodoForm(false);
+  // Upload file to Cloudflare R2
+  const uploadFileToR2 = async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Use the same API endpoint as TaskForm for consistency
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload file');
+      }
+      
+      const result = await response.json();
+      return result.url; // Return the uploaded file URL
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      throw error;
+    }
   };
 
-  // Delete todo item
-  const deleteTodo = (id) => {
-    setTodoList(prev => prev.filter(todo => todo.id !== id));
+  // Add new todo item with file uploads
+  const addNewTodo = async () => {
+    if (newTodo.title.trim() === '') return;
+    
+    try {
+      // Upload any file attachments to Cloudflare R2
+      const attachmentsWithUrls = [];
+      for (const attachment of newTodo.attachments) {
+        if (attachment.file) {
+          // This is a file that needs to be uploaded
+          const url = await uploadFileToR2(attachment.file);
+          attachmentsWithUrls.push({
+            id: attachment.id,
+            type: attachment.type,
+            url: url,
+            name: attachment.name,
+            size: attachment.size
+          });
+        } else {
+          // This is a link attachment
+          attachmentsWithUrls.push(attachment);
+        }
+      }
+      
+      const newTodoItem = {
+        id: `todo${Date.now()}`,
+        ...newTodo,
+        completed: false,
+        assignedDate: null,
+        attachments: attachmentsWithUrls
+      };
+      
+      setTodoList(prev => [...prev, newTodoItem]);
+      setNewTodo({
+        title: '',
+        description: '',
+        priority: 'medium',
+        estimated_hours: 1.00,
+        attachments: []
+      });
+      setShowTodoForm(false);
+    } catch (error) {
+      console.error('Error adding todo with attachments:', error);
+      alert('Failed to add todo with attachments. Please try again.');
+    }
   };
 
   // Handle drag action change
@@ -944,7 +1004,7 @@ const EnhancedCalendar = ({ view: propView }) => {
                     rows="2"
                   />
                   
-                  {/* Attachments for todo - matching TaskForm implementation */}
+                  {/* Attachments for todo - supporting all file types */}
                   <div className="border-t border-gray-200 pt-3">
                     <div className="flex justify-between items-center mb-2">
                       <h4 className="text-sm font-medium text-gray-700">Attachments</h4>
@@ -955,48 +1015,94 @@ const EnhancedCalendar = ({ view: propView }) => {
                       )}
                     </div>
                     
-                    {/* Add Attachment Form - simplified version of TaskForm */}
+                    {/* Add Attachment Form - supporting files and links */}
                     <div className="bg-gray-50 p-2 rounded-md mb-2">
-                      <div className="grid grid-cols-1 gap-1 mb-1">
+                      <div className="grid grid-cols-1 gap-2 mb-2">
+                        <select
+                          className="p-1 border rounded text-xs"
+                          defaultValue="link"
+                          onChange={(e) => {
+                            // This is just for UI, actual handling is in the file input
+                          }}
+                        >
+                          <option value="link">Link</option>
+                          <option value="file">File (Photo/Video/Document)</option>
+                        </select>
+                        
+                        {/* Link input */}
                         <input
                           type="url"
                           name="url"
-                          value={newTodo.attachments && newTodo.attachments.length > 0 ? newTodo.attachments[0]?.url || '' : ''}
-                          onChange={handleTodoAttachmentChange}
+                          value={newTodo.attachments.find(a => a.type === 'link')?.url || ''}
+                          onChange={(e) => {
+                            const linkAttachment = newTodo.attachments.find(a => a.type === 'link');
+                            if (linkAttachment) {
+                              removeTodoAttachment(linkAttachment.id);
+                            }
+                            if (e.target.value) {
+                              const newAttachment = {
+                                id: Date.now(),
+                                type: 'link',
+                                url: e.target.value,
+                                name: e.target.value
+                              };
+                              setNewTodo(prev => ({
+                                ...prev,
+                                attachments: [...prev.attachments.filter(a => a.type !== 'link'), newAttachment]
+                              }));
+                            }
+                          }}
                           placeholder="Enter URL"
                           className="p-1 border rounded text-xs"
                         />
-                        <input
-                          type="text"
-                          name="name"
-                          value={newTodo.attachments && newTodo.attachments.length > 0 ? newTodo.attachments[0]?.name || '' : ''}
-                          onChange={handleTodoAttachmentChange}
-                          placeholder="Link name (optional)"
-                          className="p-1 border rounded text-xs"
-                        />
-                        <button
-                          type="button"
-                          onClick={addTodoAttachment}
-                          className="px-2 py-1 bg-indigo-600 text-white rounded text-xs hover:bg-indigo-700"
-                        >
-                          Add Link
-                        </button>
+                        
+                        {/* File upload */}
+                        <label className="px-2 py-1 bg-white text-gray-700 border border-gray-300 rounded text-xs text-center cursor-pointer hover:bg-gray-50">
+                          <span>Choose Files (Multiple Selection Allowed)</span>
+                          <input
+                            type="file"
+                            className="hidden"
+                            onChange={handleTodoFileUpload}
+                            accept="image/*,video/*,.pdf,.doc,.docx,.txt,.xls,.xlsx"
+                            multiple
+                          />
+                        </label>
                       </div>
                     </div>
                     
-                    {/* Attachment List - matching TaskForm */}
+                    {/* Attachment List - showing all types */}
                     <div className="space-y-1">
-                      {newTodo.attachments.map((attachment, index) => (
+                      {newTodo.attachments.map((attachment) => (
                         <div key={attachment.id} className="flex items-center justify-between p-1 bg-white border rounded">
                           <div className="flex items-center">
-                            <svg className="w-4 h-4 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                            </svg>
+                            {/* Show appropriate icon based on attachment type */}
+                            {attachment.type === 'photo' ? (
+                              <svg className="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            ) : attachment.type === 'video' ? (
+                              <svg className="w-4 h-4 text-purple-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                              </svg>
+                            ) : attachment.type === 'document' ? (
+                              <svg className="w-4 h-4 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            ) : (
+                              <svg className="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                              </svg>
+                            )}
                             <span className="text-xs truncate max-w-[120px]">{attachment.name}</span>
+                            {attachment.size && (
+                              <span className="text-xs text-gray-500 ml-1">
+                                ({(attachment.size / 1024).toFixed(1)}KB)
+                              </span>
+                            )}
                           </div>
                           <button
                             type="button"
-                            onClick={() => removeTodoAttachment(index)}
+                            onClick={() => removeTodoAttachment(attachment.id)}
                             className="text-red-500 hover:text-red-700"
                           >
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1118,10 +1224,30 @@ const EnhancedCalendar = ({ view: propView }) => {
                             <div className="space-y-1">
                               {todo.attachments.map((attachment, index) => (
                                 <div key={index} className="flex items-center text-xs p-1 bg-gray-50 rounded">
-                                  <svg className="w-3 h-3 text-blue-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                                  </svg>
+                                  {/* Show appropriate icon based on attachment type */}
+                                  {attachment.type === 'photo' ? (
+                                    <svg className="w-3 h-3 text-green-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                  ) : attachment.type === 'video' ? (
+                                    <svg className="w-3 h-3 text-purple-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                                    </svg>
+                                  ) : attachment.type === 'document' ? (
+                                    <svg className="w-3 h-3 text-blue-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                  ) : (
+                                    <svg className="w-3 h-3 text-green-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                    </svg>
+                                  )}
                                   <span className="truncate">{attachment.name || attachment.url}</span>
+                                  {attachment.size && (
+                                    <span className="text-gray-500 ml-1">
+                                      ({(attachment.size / 1024).toFixed(1)}KB)
+                                    </span>
+                                  )}
                                 </div>
                               ))}
                             </div>
