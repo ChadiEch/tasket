@@ -467,7 +467,8 @@ const EnhancedCalendar = ({ view: propView }) => {
         priority: todo.priority || 'medium',
         status: 'planned',
         assigned_to: currentUser?.id || null,
-        estimated_hours: todo.estimated_hours || 1.00
+        estimated_hours: todo.estimated_hours || 1.00,
+        attachments: todo.attachments || [] // Include attachments from todo
       };
       
       const result = await createTask(newTaskData);
@@ -525,6 +526,11 @@ const EnhancedCalendar = ({ view: propView }) => {
         return todo;
       });
     });
+  };
+
+  // Delete todo item
+  const deleteTodo = (id) => {
+    setTodoList(prev => prev.filter(todo => todo.id !== id));
   };
 
   // Handle new todo form changes
@@ -747,6 +753,12 @@ const EnhancedCalendar = ({ view: propView }) => {
 
   // Check if we're in "My Tasks" view
   const isMyTasksView = isMyTasksMode;
+
+  // Helper function to truncate text
+  const truncateText = (text, maxLength = 20) => {
+    if (!text) return '';
+    return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
+  };
 
   return (
     <div className="p-6">
@@ -1139,9 +1151,9 @@ const EnhancedCalendar = ({ view: propView }) => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                               </svg>
                             )}
-                            <span className="text-xs truncate max-w-[120px]">{attachment.name}</span>
+                            <span className="text-xs truncate max-w-[100px]">{truncateText(attachment.name, 20)}</span>
                             {attachment.size && (
-                              <span className="text-xs text-gray-500 ml-1">
+                              <span className="text-xs text-gray-500 ml-1 flex-shrink-0">
                                 ({(attachment.size / 1024).toFixed(1)}KB)
                               </span>
                             )}
@@ -1272,25 +1284,25 @@ const EnhancedCalendar = ({ view: propView }) => {
                                 <div key={index} className="flex items-center text-xs p-1 bg-gray-50 rounded">
                                   {/* Show appropriate icon based on attachment type */}
                                   {attachment.type === 'photo' ? (
-                                    <svg className="w-3 h-3 text-green-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-3 h-3 text-green-500 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
                                   ) : attachment.type === 'video' ? (
-                                    <svg className="w-3 h-3 text-purple-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-3 h-3 text-purple-500 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
                                     </svg>
                                   ) : attachment.type === 'document' ? (
-                                    <svg className="w-3 h-3 text-blue-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-3 h-3 text-blue-500 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>
                                   ) : (
-                                    <svg className="w-3 h-3 text-green-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-3 h-3 text-green-500 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                                     </svg>
                                   )}
-                                  <span className="truncate">{attachment.name || attachment.url}</span>
+                                  <span className="truncate max-w-[100px]">{truncateText(attachment.name || attachment.url, 20)}</span>
                                   {attachment.size && (
-                                    <span className="text-gray-500 ml-1">
+                                    <span className="text-gray-500 ml-1 flex-shrink-0">
                                       ({(attachment.size / 1024).toFixed(1)}KB)
                                     </span>
                                   )}
