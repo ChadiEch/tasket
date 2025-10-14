@@ -2,19 +2,21 @@ import React, { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import TaskDetail from './tasks/TaskDetail'
 import DeleteConfirmationDialog from './tasks/DeleteConfirmationDialog'
-import { tasksAPI } from '../lib/api' // Import tasksAPI for file uploads
 
 const EnhancedCalendar = ({ view: propView }) => {
-  const { tasks, navigateToDayView, selectedEmployee, navigateToCalendar, currentUser, isAdmin, deleteTask, createTask, updateTask, updateTaskStatus } = useApp()
+  const { tasks, navigateToDayView, selectedEmployee, navigateToCalendar, currentUser, isAdmin, deleteTask, updateTask, createTask, updateTaskStatus } = useApp()
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [view, setView] = useState(propView === 'my-tasks' ? 'my-tasks' : 'year') // 'year', 'month', or 'days'
+  const [view, setView] = useState('year') // 'year' or 'days'
+  const [isMyTasksMode, setIsMyTasksMode] = useState(propView === 'my-tasks') // Whether we're filtering by current user
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
   const [viewingTask, setViewingTask] = useState(null)
   const [taskToView, setTaskToView] = useState(null) // For opening a specific task
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [taskToDelete, setTaskToDelete] = useState(null)
-
+  const [draggedTask, setDraggedTask] = useState(null) // State for dragged task
+  const [dropTarget, setDropTarget] = useState(null) // State for drop target
+  
   // State for todo list with localStorage persistence per user
   const [todoList, setTodoList] = useState(() => {
     const savedTodos = localStorage.getItem(`calendarTodos_${currentUser?.id || 'guest'}`);
@@ -113,7 +115,7 @@ const EnhancedCalendar = ({ view: propView }) => {
     // For "My Tasks" view, filter by current user
     if (selectedEmployee) {
       filteredTasks = filteredTasks.filter(task => task.assigned_to === selectedEmployee.id)
-    } else if (propView === 'my-tasks' || view === 'my-tasks') {
+    } else if (isMyTasksMode) {
       // Filter by current user for "My Tasks" view
       filteredTasks = filteredTasks.filter(task => task.assigned_to === currentUser?.id)
     }
@@ -144,7 +146,7 @@ const EnhancedCalendar = ({ view: propView }) => {
   }
 
   const getTasksForDay = (day) => {
-    if (!day || (view !== 'days' && view !== 'my-tasks')) return []
+    if (!day || view !== 'days') return []
     
     // Create date for the specific day using local timezone
     const targetDate = new Date(selectedYear, selectedMonth, day)
@@ -163,7 +165,7 @@ const EnhancedCalendar = ({ view: propView }) => {
         // Parse the date with timezone awareness
         const taskCreatedDate = new Date(task.created_at)
         
-        // Extract date part using local time (this handles timezone conversion properly)
+        // Extract date part using local time to match how dates are displayed in the UI
         const taskYear = taskCreatedDate.getFullYear()
         const taskMonth = String(taskCreatedDate.getMonth() + 1).padStart(2, '0')
         const taskDay = String(taskCreatedDate.getDate()).padStart(2, '0')
@@ -180,7 +182,7 @@ const EnhancedCalendar = ({ view: propView }) => {
     // For "My Tasks" view, filter by current user
     if (selectedEmployee) {
       filteredTasks = filteredTasks.filter(task => task.assigned_to === selectedEmployee.id)
-    } else if (propView === 'my-tasks' || view === 'my-tasks') {
+    } else if (isMyTasksMode) {
       // Filter by current user for "My Tasks" view
       filteredTasks = filteredTasks.filter(task => task.assigned_to === currentUser?.id)
     }
@@ -195,8 +197,7 @@ const EnhancedCalendar = ({ view: propView }) => {
 
   const handleMonthSelect = (monthIndex) => {
     setSelectedMonth(monthIndex)
-    // For my-tasks view, we still want to show the days view
-    setView(propView === 'my-tasks' ? 'my-tasks' : 'days')
+    setView('days')
   }
 
   const handleDayClick = (day) => {
@@ -215,8 +216,7 @@ const EnhancedCalendar = ({ view: propView }) => {
   // Handle month click in year view (navigate to month view)
   const handleYearViewMonthClick = (monthIndex) => {
     setSelectedMonth(monthIndex)
-    // For my-tasks view, we still want to show the days view
-    setView(propView === 'my-tasks' ? 'my-tasks' : 'days')
+    setView('days')
   }
 
   const navigateToToday = () => {
@@ -224,14 +224,11 @@ const EnhancedCalendar = ({ view: propView }) => {
     setSelectedYear(now.getFullYear())
     setSelectedMonth(now.getMonth())
     setCurrentDate(now)
-    // For my-tasks view, we still want to show the days view
-    setView(propView === 'my-tasks' ? 'my-tasks' : 'days')
+    setView('days')
   }
 
   const goBack = () => {
-    if (view === 'month') {
-      setView('year');
-    } else if (view === 'days' || view === 'my-tasks') {
+    if (view === 'days') {
       setView('year');
     }
     // Keep selectedEmployee context when going back
@@ -240,6 +237,8 @@ const EnhancedCalendar = ({ view: propView }) => {
   const navigateToAllEmployeesCalendar = () => {
     // Navigate to calendar view but keep the selected employee context
     navigateToCalendar();
+    // Also exit my tasks mode when navigating to all employees
+    setIsMyTasksMode(false);
   };
 
   const openTaskView = (task) => {
@@ -300,22 +299,38 @@ const EnhancedCalendar = ({ view: propView }) => {
   }
 
   const handleDeleteConfirm = async (action) => {
-    setShowDeleteDialog(false)
-    if (!taskToDelete) return
+    setShowDeleteDialog(false);
+    if (!taskToDelete) return;
     
     try {
-      await deleteTask(taskToDelete.id, action)
+      await deleteTask(taskToDelete.id, action);
+      
+      // If task was deleted, remove it from todo list assigned dates
+      setTodoList(prev => prev.map(todo => {
+        if (todo.assignedDate) {
+          // Check if this todo is assigned to the deleted task's date
+          const taskDate = new Date(taskToDelete.created_at);
+          const todoDate = new Date(todo.assignedDate);
+          
+          if (taskDate.toDateString() === todoDate.toDateString() && 
+              todo.title === taskToDelete.title) {
+            return { ...todo, assignedDate: null };
+          }
+        }
+        return todo;
+      }));
+      
       // Close task detail if it's open for the deleted task
       if (viewingTask && viewingTask.id === taskToDelete.id) {
-        setViewingTask(null)
+        setViewingTask(null);
       }
     } catch (error) {
-      console.error('Error deleting task:', error)
-      alert('Failed to delete task')
+      console.error('Error deleting task:', error);
+      alert('Failed to delete task');
     } finally {
-      setTaskToDelete(null)
+      setTaskToDelete(null);
     }
-  }
+  };
 
   // Function to open a task by ID (to be called from other components)
   const openTaskFromNotification = (taskId) => {
@@ -326,9 +341,94 @@ const EnhancedCalendar = ({ view: propView }) => {
     setTaskToView(taskId);
   }
 
-  // Make this function available to other components through context or props
-  // For now, we'll just export it as a named export
-  window.openTaskFromNotification = openTaskFromNotification;
+  // Handle drag start
+  const handleDragStart = (e, task) => {
+    if (!isAdmin) return;
+    setDraggedTask(task);
+    e.dataTransfer.effectAllowed = 'move';
+    // Set drag image to improve UX
+    const dragImage = document.createElement('div');
+    dragImage.style.position = 'absolute';
+    dragImage.style.top = '-1000px';
+    dragImage.textContent = task.title;
+    dragImage.className = 'bg-blue-500 text-white px-2 py-1 rounded text-sm';
+    document.body.appendChild(dragImage);
+    e.dataTransfer.setDragImage(dragImage, 0, 0);
+    setTimeout(() => document.body.removeChild(dragImage), 0);
+  };
+
+  // Handle drag end
+  const handleDragEnd = () => {
+    setDraggedTask(null);
+    setDropTarget(null);
+  };
+
+  // Handle drag over
+  const handleDragOver = (e, day) => {
+    if (!isAdmin || !day || !draggedTask) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDropTarget(day);
+  };
+
+  // Handle drag leave
+  const handleDragLeave = (e) => {
+    // Only clear drop target if we're leaving the calendar day cell
+    if (e.target.classList.contains('min-h-24')) {
+      setDropTarget(null);
+    }
+  };
+
+  // Handle drop
+  const handleDrop = async (e, day) => {
+    e.preventDefault();
+    if (!isAdmin || !draggedTask || !day) return;
+    
+    // Create a date string for the target day (this ensures we keep the correct calendar day)
+    const year = selectedYear;
+    const month = String(selectedMonth + 1).padStart(2, '0'); // Months are 0-indexed
+    const dayStr = String(day).padStart(2, '0');
+    const targetDateStr = `${year}-${month}-${dayStr}`;
+    
+    // Create the date string for the backend in a way that preserves the calendar day
+    // We'll create a date at noon to avoid timezone conversion issues
+    const targetDate = new Date(selectedYear, selectedMonth, day, 12, 0, 0);
+    const formattedDate = targetDate.toISOString();
+    
+    console.log('Moving task:', draggedTask.id);
+    console.log('Target date string:', targetDateStr);
+    console.log('Target date (noon):', targetDate);
+    console.log('Formatted date for backend:', formattedDate);
+    
+    try {
+      // Use the regular updateTask function but send only the created_at field
+      const updatedTaskData = {
+        created_at: formattedDate
+      };
+      
+      const result = await updateTask(draggedTask.id, updatedTaskData);
+      
+      console.log('Update task result:', result);
+      
+      if (result.error) {
+        console.error('Error updating task:', result.error);
+        // Show a more user-friendly error message
+        alert(`Failed to move task: ${result.error}`);
+      } else {
+        console.log('Task moved successfully:', result.task);
+        // Log the new created_at value
+        console.log('New created_at value:', result.task.created_at);
+        // Show success message
+        console.log('Task moved successfully!');
+      }
+    } catch (error) {
+      console.error('Error moving task:', error);
+      alert(`Failed to move task: ${error.message}`);
+    } finally {
+      setDraggedTask(null);
+      setDropTarget(null);
+    }
+  };
 
   // Handle todo list drag start
   const handleTodoDragStart = (e, todo) => {
@@ -426,11 +526,6 @@ const EnhancedCalendar = ({ view: propView }) => {
     });
   };
 
-  // Delete todo item
-  const deleteTodo = (id) => {
-    setTodoList(prev => prev.filter(todo => todo.id !== id));
-  };
-
   // Handle new todo form changes
   const handleTodoFormChange = (e) => {
     const { name, value } = e.target;
@@ -499,42 +594,27 @@ const EnhancedCalendar = ({ view: propView }) => {
   // Upload file to Cloudflare R2
   const uploadFileToR2 = async (file) => {
     try {
-      console.log('Uploading file to server:', file.name);
-      // Use the dedicated upload method from tasksAPI
-      const result = await tasksAPI.uploadFile(file);
-      console.log('Upload result:', result);
+      const formData = new FormData();
+      formData.append('file', file);
       
-      // Check if the result is valid
-      if (!result) {
-        throw new Error('No response received from server');
-      }
-      
-      // Extract the uploaded file URL from the task attachments
-      if (result.task && result.task.attachments && Array.isArray(result.task.attachments) && result.task.attachments.length > 0) {
-        // Find the attachment that matches our uploaded file
-        const uploadedAttachment = result.task.attachments.find(attachment => 
-          attachment.name === file.name
-        ) || result.task.attachments[0]; // Fallback to first attachment
-        
-        if (uploadedAttachment && uploadedAttachment.url) {
-          console.log('Successfully uploaded file URL:', uploadedAttachment.url);
-          return uploadedAttachment.url; // Return the uploaded file URL
-        } else {
-          console.error('Uploaded attachment missing URL:', uploadedAttachment);
-          throw new Error('Uploaded file missing URL');
+      // Use the same API endpoint as TaskForm for consistency
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         }
-      } else {
-        console.error('Invalid response structure:', result);
-        throw new Error('Invalid response from server: missing attachments');
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload file');
       }
+      
+      const result = await response.json();
+      return result.url; // Return the uploaded file URL
     } catch (error) {
-      console.error('Error uploading file to R2:', error);
-      // Provide more detailed error information
-      if (error.message) {
-        throw new Error(`File upload failed: ${error.message}`);
-      } else {
-        throw new Error('File upload failed: Unknown error occurred');
-      }
+      console.error('Error uploading file:', error);
+      throw error;
     }
   };
 
@@ -543,59 +623,31 @@ const EnhancedCalendar = ({ view: propView }) => {
     if (newTodo.title.trim() === '') return;
     
     try {
-      console.log('Adding new todo with attachments:', newTodo);
-      
       // Upload any file attachments to Cloudflare R2
       const attachmentsWithUrls = [];
-      const filesToUpload = [];
-      const linkAttachments = [];
-      
       for (const attachment of newTodo.attachments) {
         if (attachment.file) {
           // This is a file that needs to be uploaded
-          filesToUpload.push(attachment);
-        } else if (attachment.type === 'link' && attachment.url) {
-          // This is a link attachment
-          linkAttachments.push(attachment);
-        }
-      }
-      
-      console.log('Files to upload:', filesToUpload.length);
-      console.log('Link attachments:', linkAttachments.length);
-      
-      // Upload all files
-      const uploadedAttachments = [];
-      for (let i = 0; i < filesToUpload.length; i++) {
-        const fileAttachment = filesToUpload[i];
-        
-        try {
-          console.log('Uploading file:', fileAttachment.name);
-          const uploadedUrl = await uploadFileToR2(fileAttachment.file);
-          console.log('File uploaded successfully:', uploadedUrl);
-          
-          uploadedAttachments.push({
-            id: fileAttachment.id,
-            type: fileAttachment.type,
-            url: uploadedUrl,
-            name: fileAttachment.name,
-            size: fileAttachment.size
+          const url = await uploadFileToR2(attachment.file);
+          attachmentsWithUrls.push({
+            id: attachment.id,
+            type: attachment.type,
+            url: url,
+            name: attachment.name,
+            size: attachment.size
           });
-        } catch (uploadError) {
-          console.error('Error uploading file:', uploadError);
-          throw new Error(`Failed to upload file "${fileAttachment.name}": ${uploadError.message || 'Unknown error'}`);
+        } else {
+          // This is a link attachment
+          attachmentsWithUrls.push(attachment);
         }
       }
-      
-      // Combine all attachments
-      const allAttachments = [...uploadedAttachments, ...linkAttachments];
-      console.log('All attachments:', allAttachments);
       
       const newTodoItem = {
         id: `todo${Date.now()}`,
         ...newTodo,
         completed: false,
         assignedDate: null,
-        attachments: allAttachments
+        attachments: attachmentsWithUrls
       };
       
       setTodoList(prev => [...prev, newTodoItem]);
@@ -607,11 +659,9 @@ const EnhancedCalendar = ({ view: propView }) => {
         attachments: []
       });
       setShowTodoForm(false);
-      
-      console.log('Todo added successfully');
     } catch (error) {
       console.error('Error adding todo with attachments:', error);
-      alert(`Failed to add todo with attachments: ${error.message || 'Please try again.'}`);
+      alert('Failed to add todo with attachments. Please try again.');
     }
   };
 
@@ -644,6 +694,10 @@ const EnhancedCalendar = ({ view: propView }) => {
       console.error('Error updating task status:', error);
     }
   };
+
+  // Make this function available to other components through context or props
+  // For now, we'll just export it as a named export
+  window.openTaskFromNotification = openTaskFromNotification;
 
   // Check if we're in "My Tasks" view
   const isMyTasksView = isMyTasksMode;
