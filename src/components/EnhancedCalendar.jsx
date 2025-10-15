@@ -368,9 +368,30 @@ const EnhancedCalendar = ({ view: propView }) => {
 
   // Handle drag over
   const handleDragOver = (e, day) => {
-    if (!isAdmin || !day || !draggedTask) return;
+    if (!isAdmin || !day) return;
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+    
+    // Check what type of item is being dragged
+    const data = e.dataTransfer.getData('text/plain');
+    if (data) {
+      try {
+        const parsedData = JSON.parse(data);
+        if (parsedData.source === 'task') {
+          // Moving a task between days
+          e.dataTransfer.dropEffect = 'move';
+        } else if (parsedData.source === 'todo') {
+          // Moving a todo to a day
+          e.dataTransfer.dropEffect = dragAction === 'copy' ? 'copy' : 'move';
+        }
+      } catch (error) {
+        // Not a valid JSON, default to move
+        e.dataTransfer.dropEffect = 'move';
+      }
+    } else {
+      // Default to move for tasks
+      e.dataTransfer.dropEffect = 'move';
+    }
+    
     setDropTarget(day);
   };
 
@@ -469,78 +490,12 @@ const EnhancedCalendar = ({ view: propView }) => {
     const formattedDate = targetDate.toISOString();
     
     try {
-      // Create a new task based on the todo item
-      const newTaskData = {
-        title: todoData.title,
-        description: todoData.description || 'Task created from todo list',
-        created_at: formattedDate,
-        due_date: formattedDate,
-        priority: todoData.priority || 'medium',
-        status: 'planned',
-        assigned_to: currentUser?.id || null,
-        estimated_hours: todoData.estimated_hours || 1.00
-      };
-      
-      const result = await createTask(newTaskData);
-      
-      if (result.error) {
-        console.error('Error creating task:', result.error);
-        alert(`Failed to create task: ${result.error}`);
-      } else {
-        console.log('Task created successfully:', result.task);
-        
-        // If moving (not copying), remove from todo list
-        if (dragAction === 'move') {
-          setTodoList(prev => prev.filter(t => t.id !== todoData.id));
-        } else {
-          // If copying, update todo list to show assigned date
-          setTodoList(prev => prev.map(t => 
-            t.id === todoData.id ? { ...t, assignedDate: targetDate } : t
-          ));
-        }
-        
-        // Show success message
-        console.log('Task created successfully!');
-      }
-    } catch (error) {
-      console.error('Error creating task:', error);
-      alert(`Failed to create task: ${error.message}`);
-    }
-  };
-
-  // Handle todo list drag start
-  const handleTodoDragStart = (e, todo) => {
-    e.dataTransfer.setData('text/plain', JSON.stringify({ ...todo, source: 'todo' }));
-    e.dataTransfer.effectAllowed = dragAction === 'copy' ? 'copy' : 'move';
-  };
-
-  // Handle todo drop on calendar day (updated to properly handle copy vs move with file uploads)
-  const handleTodoDrop = async (e, day) => {
-    e.preventDefault();
-    const todoData = e.dataTransfer.getData('text/plain');
-    if (!todoData) return;
-    
-    const todo = JSON.parse(todoData);
-    if (!todo) return;
-    
-    // Create the date string for the backend in a way that preserves the calendar day
-    const year = selectedYear;
-    const month = String(selectedMonth + 1).padStart(2, '0'); // Months are 0-indexed
-    const dayStr = String(day).padStart(2, '0');
-    const targetDateStr = `${year}-${month}-${dayStr}`;
-    
-    // Create the date string for the backend in a way that preserves the calendar day
-    // We'll create a date at noon to avoid timezone conversion issues
-    const targetDate = new Date(selectedYear, selectedMonth, day, 12, 0, 0);
-    const formattedDate = targetDate.toISOString();
-    
-    try {
       // Upload any file attachments to Cloudflare R2
       const attachmentsWithUrls = [];
       const filesToUpload = [];
       const linkAttachments = [];
       
-      for (const attachment of todo.attachments) {
+      for (const attachment of todoData.attachments) {
         if (attachment.file) {
           // This is a file that needs to be uploaded
           filesToUpload.push(attachment);
@@ -595,14 +550,14 @@ const EnhancedCalendar = ({ view: propView }) => {
       
       // Create a new task based on the todo item
       const newTaskData = {
-        title: todo.title,
-        description: todo.description || 'Task created from todo list',
+        title: todoData.title,
+        description: todoData.description || 'Task created from todo list',
         created_at: formattedDate,
         due_date: formattedDate,
-        priority: todo.priority || 'medium',
+        priority: todoData.priority || 'medium',
         status: 'planned',
         assigned_to: currentUser?.id || null,
-        estimated_hours: todo.estimated_hours || 1.00,
+        estimated_hours: todoData.estimated_hours || 1.00,
         attachments: allAttachments // Include attachments with uploaded URLs
       };
       
@@ -616,11 +571,11 @@ const EnhancedCalendar = ({ view: propView }) => {
         
         // If moving (not copying), remove from todo list
         if (dragAction === 'move') {
-          setTodoList(prev => prev.filter(t => t.id !== todo.id));
+          setTodoList(prev => prev.filter(t => t.id !== todoData.id));
         } else {
           // If copying, update todo list to show assigned date
           setTodoList(prev => prev.map(t => 
-            t.id === todo.id ? { ...t, assignedDate: targetDate } : t
+            t.id === todoData.id ? { ...t, assignedDate: targetDate } : t
           ));
         }
         
@@ -631,6 +586,12 @@ const EnhancedCalendar = ({ view: propView }) => {
       console.error('Error creating task:', error);
       alert(`Failed to create task: ${error.message || 'Please try again.'}`);
     }
+  };
+
+  // Handle todo list drag start
+  const handleTodoDragStart = (e, todo) => {
+    e.dataTransfer.setData('text/plain', JSON.stringify({ ...todo, source: 'todo' }));
+    e.dataTransfer.effectAllowed = dragAction === 'copy' ? 'copy' : 'move';
   };
 
   // Handle file upload for todo attachments
