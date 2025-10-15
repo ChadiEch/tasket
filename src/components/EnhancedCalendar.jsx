@@ -508,13 +508,18 @@ const EnhancedCalendar = ({ view: propView }) => {
       console.log('Drag action:', dragAction);
       console.log('Todo attachments:', todoData.attachments);
       
-      for (const attachment of todoData.attachments) {
-        if (attachment.file) {
-          // This is a file that needs to be uploaded
-          filesToUpload.push(attachment);
-        } else if (attachment.url) {
-          // This is an already uploaded attachment or a link
-          existingAttachments.push(attachment);
+      if (todoData.attachments && Array.isArray(todoData.attachments)) {
+        for (const attachment of todoData.attachments) {
+          // Check if this is a file that needs to be uploaded
+          if (attachment.file && typeof attachment.file === 'object' && attachment.file instanceof File) {
+            // This is a file that needs to be uploaded
+            filesToUpload.push(attachment);
+          } else if (attachment.url) {
+            // This is an already uploaded attachment or a link
+            // We can distinguish between them by checking if there's a file property
+            existingAttachments.push(attachment);
+          }
+          // If neither condition is met, we skip this attachment
         }
       }
       
@@ -562,8 +567,7 @@ const EnhancedCalendar = ({ view: propView }) => {
       }
       
       // Combine all attachments
-      // For copy operations, we want to preserve all attachments
-      // For move operations, we also want to preserve all attachments
+      // For both copy and move operations, we want to preserve all attachments in the new task
       const allAttachments = [...uploadedAttachments, ...existingAttachments];
       console.log('All attachments for new task:', allAttachments);
       
@@ -592,9 +596,9 @@ const EnhancedCalendar = ({ view: propView }) => {
         if (dragAction === 'move') {
           setTodoList(prev => prev.filter(t => t.id !== todoData.id));
         } else {
-          // If copying, we don't modify the original todo list
-          // But we do want to show some feedback that the copy was successful
-          console.log('Todo item copied successfully');
+          // If copying, we don't modify the original todo list at all
+          // The original todo should remain unchanged
+          console.log('Todo item copied successfully - original todo unchanged');
         }
         
         // Show success message
