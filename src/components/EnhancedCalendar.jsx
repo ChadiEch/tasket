@@ -414,6 +414,10 @@ const EnhancedCalendar = ({ view: propView }) => {
     try {
       const parsedData = JSON.parse(data);
       
+      // Log what we're dropping
+      console.log('Dropping item:', parsedData);
+      console.log('Current drag action:', dragAction);
+      
       // Check what type of item is being dropped
       if (parsedData.source === 'task') {
         // Moving a task from one day to another
@@ -495,12 +499,18 @@ const EnhancedCalendar = ({ view: propView }) => {
       const filesToUpload = [];
       const linkAttachments = [];
       
+      // Log the todoData to see what we're working with
+      console.log('Converting todo to task:', todoData);
+      
       for (const attachment of todoData.attachments) {
         if (attachment.file) {
           // This is a file that needs to be uploaded
           filesToUpload.push(attachment);
         } else if (attachment.type === 'link' && attachment.url) {
           // This is a link attachment
+          linkAttachments.push(attachment);
+        } else if (attachment.url && !attachment.file) {
+          // This is an already uploaded attachment (from copy operation)
           linkAttachments.push(attachment);
         }
       }
@@ -547,6 +557,7 @@ const EnhancedCalendar = ({ view: propView }) => {
       
       // Combine all attachments
       const allAttachments = [...uploadedAttachments, ...linkAttachments];
+      console.log('All attachments for new task:', allAttachments);
       
       // Create a new task based on the todo item
       const newTaskData = {
@@ -590,6 +601,8 @@ const EnhancedCalendar = ({ view: propView }) => {
 
   // Handle todo list drag start
   const handleTodoDragStart = (e, todo) => {
+    // Log the todo data being dragged
+    console.log('Dragging todo item:', todo);
     e.dataTransfer.setData('text/plain', JSON.stringify({ ...todo, source: 'todo' }));
     e.dataTransfer.effectAllowed = dragAction === 'copy' ? 'copy' : 'move';
   };
@@ -1241,7 +1254,7 @@ const EnhancedCalendar = ({ view: propView }) => {
                               </svg>
                             ) : attachment.type === 'video' ? (
                               <svg className="w-4 h-4 text-purple-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                                <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 00-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
                               </svg>
                             ) : attachment.type === 'document' ? (
                               <svg className="w-4 h-4 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

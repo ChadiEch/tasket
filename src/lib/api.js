@@ -409,8 +409,23 @@ export const tasksAPI = {
       const formData = new FormData();
       
       // Create a minimal but valid task data object for the upload
+      // Fix: Remove duplicate extensions from file name
+      let fileName = file.name || 'Attachment';
+      
+      // More precise duplicate extension removal
+      // Look for patterns like .ext.ext and remove the first .ext
+      const dotParts = fileName.split('.');
+      if (dotParts.length >= 3) {
+        // Check if the last two parts are the same (e.g., png, png)
+        if (dotParts[dotParts.length - 1] === dotParts[dotParts.length - 2]) {
+          // Remove the second-to-last part
+          dotParts.splice(dotParts.length - 2, 1);
+          fileName = dotParts.join('.');
+        }
+      }
+      
       const taskData = {
-        title: 'File Upload - ' + (file.name || 'Attachment'),
+        title: 'File Upload - ' + fileName,
         description: 'File uploaded via todo list',
         created_at: new Date().toISOString(),
         due_date: new Date().toISOString(),
