@@ -481,95 +481,17 @@ const EnhancedCalendar = ({ view: propView }) => {
     }
   };
 
-  // Function to convert a todo to a task on a specific day
-  const convertTodoToTask = async (todoData, day) => {
-    // Create the date string for the backend in a way that preserves the calendar day
-    const year = selectedYear;
-    const month = String(selectedMonth + 1).padStart(2, '0'); // Months are 0-indexed
-    const dayStr = String(day).padStart(2, '0');
-    const targetDateStr = `${year}-${month}-${dayStr}`;
-    
-    // Create the date string for the backend in a way that preserves the calendar day
-    // We'll create a date at noon to avoid timezone conversion issues
+  // Function to copy a todo item to a specific day as a new task
+  const copyTodoToDay = async (todoData, day) => {
+    // Create the target date for the new task
     const targetDate = new Date(selectedYear, selectedMonth, day, 12, 0, 0);
     const formattedDate = targetDate.toISOString();
     
     try {
-      // Process attachments - we need to distinguish between:
-      // 1. Files that need to be uploaded (have file property)
-      // 2. Already uploaded attachments (have url but no file property)
-      // 3. Link attachments (have url property and type 'link')
+      console.log('Copying todo to day:', { todoData, day, targetDate });
       
-      const filesToUpload = [];
-      const existingAttachments = [];
-      
-      // Log the todoData to see what we're working with
-      console.log('Converting todo to task:', todoData);
-      console.log('Drag action:', dragAction);
-      console.log('Todo attachments:', todoData.attachments);
-      
-      if (todoData.attachments && Array.isArray(todoData.attachments)) {
-        for (const attachment of todoData.attachments) {
-          // Check if this is a file that needs to be uploaded
-          if (attachment.file && typeof attachment.file === 'object' && attachment.file instanceof File) {
-            // This is a file that needs to be uploaded
-            filesToUpload.push(attachment);
-          } else if (attachment.url) {
-            // This is an already uploaded attachment or a link
-            // We can distinguish between them by checking if there's a file property
-            existingAttachments.push(attachment);
-          }
-          // If neither condition is met, we skip this attachment
-        }
-      }
-      
-      console.log('Files to upload:', filesToUpload);
-      console.log('Existing attachments:', existingAttachments);
-      
-      // Upload all files
-      const uploadedAttachments = [];
-      for (let i = 0; i < filesToUpload.length; i++) {
-        const fileAttachment = filesToUpload[i];
-        
-        try {
-          console.log('Uploading file:', fileAttachment.name);
-          const result = await tasksAPI.uploadFile(fileAttachment.file);
-          console.log('File uploaded successfully:', result);
-          
-          // Extract the uploaded file URL from the task attachments
-          if (result.task && result.task.attachments && Array.isArray(result.task.attachments) && result.task.attachments.length > 0) {
-            // Find the attachment that matches our uploaded file
-            const uploadedAttachment = result.task.attachments.find(attachment => 
-              attachment.name === fileAttachment.name
-            ) || result.task.attachments[0]; // Fallback to first attachment
-            
-            if (uploadedAttachment && uploadedAttachment.url) {
-              console.log('Successfully uploaded file URL:', uploadedAttachment.url);
-              uploadedAttachments.push({
-                id: fileAttachment.id,
-                type: fileAttachment.type,
-                url: uploadedAttachment.url,
-                name: fileAttachment.name,
-                size: fileAttachment.size
-              });
-            } else {
-              console.error('Uploaded attachment missing URL:', uploadedAttachment);
-              throw new Error('Uploaded file missing URL');
-            }
-          } else {
-            console.error('Invalid response structure:', result);
-            throw new Error('Invalid response from server: missing attachments');
-          }
-        } catch (uploadError) {
-          console.error('Error uploading file:', uploadError);
-          throw new Error(`Failed to upload file "${fileAttachment.name}": ${uploadError.message || 'Unknown error'}`);
-        }
-      }
-      
-      // Combine all attachments
-      // For both copy and move operations, we want to preserve all attachments in the new task
-      const allAttachments = [...uploadedAttachments, ...existingAttachments];
-      console.log('All attachments for new task:', allAttachments);
+      // Process attachments for the new task
+      const processedAttachments = await processTodoAttachments(todoData.attachments);
       
       // Create a new task based on the todo item
       const newTaskData = {
@@ -581,32 +503,161 @@ const EnhancedCalendar = ({ view: propView }) => {
         status: 'planned',
         assigned_to: currentUser?.id || null,
         estimated_hours: todoData.estimated_hours || 1.00,
-        attachments: allAttachments // Include all attachments
+        attachments: processedAttachments
       };
       
+      // Create the task
       const result = await createTask(newTaskData);
       
       if (result.error) {
-        console.error('Error creating task:', result.error);
-        alert(`Failed to create task: ${result.error}`);
-      } else {
-        console.log('Task created successfully:', result.task);
+        console.error('Error creating task from todo:', result.error);
+        throw new Error(result.error);
+      }
+      
+      console.log('Task created successfully from todo:', result.task);
+      
+      // For copy operation, we don't modify the original todo list
+      // The original todo should remain unchanged
+      console.log('Todo item copied successfully - original todo unchanged');
+      
+      return result.task;
+    } catch (error) {
+      console.error('Error copying todo to day:', error);
+      throw error;
+    }
+  };
+
+  // Function to move a todo item to a specific day as a new task
+  const moveTodoToDay = async (todoData, day) => {
+    // Create the target date for the new task
+    const targetDate = new Date(selectedYear, selectedMonth, day, 12, 0, 0);
+    const formattedDate = targetDate.toISOString();
+    
+    try {
+      console.log('Moving todo to day:', { todoData, day, targetDate });
+      
+      // Process attachments for the new task
+      const processedAttachments = await processTodoAttachments(todoData.attachments);
+      
+      // Create a new task based on the todo item
+      const newTaskData = {
+        title: todoData.title,
+        description: todoData.description || 'Task created from todo list',
+        created_at: formattedDate,
+        due_date: formattedDate,
+        priority: todoData.priority || 'medium',
+        status: 'planned',
+        assigned_to: currentUser?.id || null,
+        estimated_hours: todoData.estimated_hours || 1.00,
+        attachments: processedAttachments
+      };
+      
+      // Create the task
+      const result = await createTask(newTaskData);
+      
+      if (result.error) {
+        console.error('Error creating task from todo:', result.error);
+        throw new Error(result.error);
+      }
+      
+      console.log('Task created successfully from todo:', result.task);
+      
+      // For move operation, remove the original todo from the list
+      setTodoList(prev => prev.filter(t => t.id !== todoData.id));
+      console.log('Todo item moved successfully - original todo removed');
+      
+      return result.task;
+    } catch (error) {
+      console.error('Error moving todo to day:', error);
+      throw error;
+    }
+  };
+
+  // Helper function to process todo attachments
+  const processTodoAttachments = async (attachments = []) => {
+    if (!Array.isArray(attachments) || attachments.length === 0) {
+      return [];
+    }
+    
+    console.log('Processing todo attachments:', attachments);
+    
+    // Separate attachments by type
+    const filesToUpload = [];
+    const existingAttachments = [];
+    
+    for (const attachment of attachments) {
+      // Check if this is a file that needs to be uploaded
+      if (attachment.file && typeof attachment.file === 'object' && attachment.file instanceof File) {
+        filesToUpload.push(attachment);
+      } else if (attachment.url) {
+        // This is an already uploaded attachment or a link
+        existingAttachments.push(attachment);
+      }
+    }
+    
+    console.log('Files to upload:', filesToUpload);
+    console.log('Existing attachments:', existingAttachments);
+    
+    // Upload all files
+    const uploadedAttachments = [];
+    for (let i = 0; i < filesToUpload.length; i++) {
+      const fileAttachment = filesToUpload[i];
+      
+      try {
+        console.log('Uploading file:', fileAttachment.name);
+        const result = await tasksAPI.uploadFile(fileAttachment.file);
+        console.log('File uploaded successfully:', result);
         
-        // If moving (not copying), remove from todo list
-        if (dragAction === 'move') {
-          setTodoList(prev => prev.filter(t => t.id !== todoData.id));
+        // Extract the uploaded file URL from the task attachments
+        if (result.task && result.task.attachments && Array.isArray(result.task.attachments) && result.task.attachments.length > 0) {
+          // Find the attachment that matches our uploaded file
+          const uploadedAttachment = result.task.attachments.find(attachment => 
+            attachment.name === fileAttachment.name
+          ) || result.task.attachments[0]; // Fallback to first attachment
+          
+          if (uploadedAttachment && uploadedAttachment.url) {
+            console.log('Successfully uploaded file URL:', uploadedAttachment.url);
+            uploadedAttachments.push({
+              id: fileAttachment.id,
+              type: fileAttachment.type,
+              url: uploadedAttachment.url,
+              name: fileAttachment.name,
+              size: fileAttachment.size
+            });
+          } else {
+            console.error('Uploaded attachment missing URL:', uploadedAttachment);
+            throw new Error('Uploaded file missing URL');
+          }
         } else {
-          // If copying, we don't modify the original todo list at all
-          // The original todo should remain unchanged
-          console.log('Todo item copied successfully - original todo unchanged');
+          console.error('Invalid response structure:', result);
+          throw new Error('Invalid response from server: missing attachments');
         }
-        
-        // Show success message
-        console.log('Task created successfully!');
+      } catch (uploadError) {
+        console.error('Error uploading file:', uploadError);
+        throw new Error(`Failed to upload file "${fileAttachment.name}": ${uploadError.message || 'Unknown error'}`);
+      }
+    }
+    
+    // Combine all attachments
+    const allAttachments = [...uploadedAttachments, ...existingAttachments];
+    console.log('All processed attachments:', allAttachments);
+    
+    return allAttachments;
+  };
+
+  // Function to convert a todo to a task on a specific day (main entry point)
+  const convertTodoToTask = async (todoData, day) => {
+    try {
+      // Check the current drag action to determine copy or move behavior
+      if (dragAction === 'copy') {
+        return await copyTodoToDay(todoData, day);
+      } else {
+        return await moveTodoToDay(todoData, day);
       }
     } catch (error) {
-      console.error('Error creating task:', error);
-      alert(`Failed to create task: ${error.message || 'Please try again.'}`);
+      console.error('Error converting todo to task:', error);
+      alert(`Failed to convert todo to task: ${error.message || 'Please try again.'}`);
+      throw error;
     }
   };
 
