@@ -424,6 +424,7 @@ const EnhancedCalendar = ({ view: propView }) => {
         await moveTaskToDay(parsedData, day);
       } else if (parsedData.source === 'todo') {
         // Moving a todo to a calendar day (convert to task)
+        console.log('Converting todo to task with drag action:', dragAction);
         await convertTodoToTask(parsedData, day);
       }
     } catch (error) {
@@ -494,26 +495,31 @@ const EnhancedCalendar = ({ view: propView }) => {
     const formattedDate = targetDate.toISOString();
     
     try {
-      // Upload any file attachments to Cloudflare R2
-      const attachmentsWithUrls = [];
+      // Process attachments - we need to distinguish between:
+      // 1. Files that need to be uploaded (have file property)
+      // 2. Already uploaded attachments (have url but no file property)
+      // 3. Link attachments (have url property and type 'link')
+      
       const filesToUpload = [];
-      const linkAttachments = [];
+      const existingAttachments = [];
       
       // Log the todoData to see what we're working with
       console.log('Converting todo to task:', todoData);
+      console.log('Drag action:', dragAction);
+      console.log('Todo attachments:', todoData.attachments);
       
       for (const attachment of todoData.attachments) {
         if (attachment.file) {
           // This is a file that needs to be uploaded
           filesToUpload.push(attachment);
-        } else if (attachment.type === 'link' && attachment.url) {
-          // This is a link attachment
-          linkAttachments.push(attachment);
-        } else if (attachment.url && !attachment.file) {
-          // This is an already uploaded attachment (from copy operation)
-          linkAttachments.push(attachment);
+        } else if (attachment.url) {
+          // This is an already uploaded attachment or a link
+          existingAttachments.push(attachment);
         }
       }
+      
+      console.log('Files to upload:', filesToUpload);
+      console.log('Existing attachments:', existingAttachments);
       
       // Upload all files
       const uploadedAttachments = [];
@@ -556,7 +562,9 @@ const EnhancedCalendar = ({ view: propView }) => {
       }
       
       // Combine all attachments
-      const allAttachments = [...uploadedAttachments, ...linkAttachments];
+      // For copy operations, we want to preserve all attachments
+      // For move operations, we also want to preserve all attachments
+      const allAttachments = [...uploadedAttachments, ...existingAttachments];
       console.log('All attachments for new task:', allAttachments);
       
       // Create a new task based on the todo item
@@ -569,7 +577,7 @@ const EnhancedCalendar = ({ view: propView }) => {
         status: 'planned',
         assigned_to: currentUser?.id || null,
         estimated_hours: todoData.estimated_hours || 1.00,
-        attachments: allAttachments // Include attachments with uploaded URLs
+        attachments: allAttachments // Include all attachments
       };
       
       const result = await createTask(newTaskData);
@@ -584,10 +592,9 @@ const EnhancedCalendar = ({ view: propView }) => {
         if (dragAction === 'move') {
           setTodoList(prev => prev.filter(t => t.id !== todoData.id));
         } else {
-          // If copying, update todo list to show assigned date
-          setTodoList(prev => prev.map(t => 
-            t.id === todoData.id ? { ...t, assignedDate: targetDate } : t
-          ));
+          // If copying, we don't modify the original todo list
+          // But we do want to show some feedback that the copy was successful
+          console.log('Todo item copied successfully');
         }
         
         // Show success message
@@ -603,6 +610,7 @@ const EnhancedCalendar = ({ view: propView }) => {
   const handleTodoDragStart = (e, todo) => {
     // Log the todo data being dragged
     console.log('Dragging todo item:', todo);
+    console.log('Todo attachments:', todo.attachments);
     e.dataTransfer.setData('text/plain', JSON.stringify({ ...todo, source: 'todo' }));
     e.dataTransfer.effectAllowed = dragAction === 'copy' ? 'copy' : 'move';
   };
@@ -1250,11 +1258,11 @@ const EnhancedCalendar = ({ view: propView }) => {
                             {/* Show appropriate icon based on attachment type */}
                             {attachment.type === 'photo' ? (
                               <svg className="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 01-2 2z" />
                               </svg>
                             ) : attachment.type === 'video' ? (
                               <svg className="w-4 h-4 text-purple-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 00-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                                <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 00-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0118 13V7a1 1 0 00-1.447-.894l-2 1z" />
                               </svg>
                             ) : attachment.type === 'document' ? (
                               <svg className="w-4 h-4 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
