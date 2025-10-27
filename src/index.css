@@ -23,3 +23,41 @@
 ::-webkit-scrollbar-corner {
   display: none;
 }
+
+/* Touch feedback styles */
+.touch-active {
+  transform: scale(0.98);
+  transition: transform 0.1s ease;
+}
+
+.dragging {
+  opacity: 0.7;
+  transform: scale(0.95);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Mobile drag feedback */
+#mobile-drag-feedback {
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+}
+
+/* Improve touch targets on mobile */
+.touch-manipulation {
+  touch-action: manipulation;
+}
+
+/* Responsive calendar adjustments */
+@media (max-width: 640px) {
+  .calendar-day-cell {
+    min-height: 100px !important;
+  }
+  
+  .calendar-day-cell .text-sm {
+    font-size: 0.75rem;
+  }
+  
+  .calendar-day-cell .text-xs {
+    font-size: 0.65rem;
+  }
+}

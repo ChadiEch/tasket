@@ -342,7 +342,7 @@ const EnhancedCalendar = ({ view: propView }) => {
     setTaskToView(taskId);
   }
 
-  // Handle drag start
+  // Handle drag start with touch support for mobile
   const handleDragStart = (e, task) => {
     if (!isAdmin) return;
     // Include source information to distinguish between tasks and todos
@@ -360,13 +360,160 @@ const EnhancedCalendar = ({ view: propView }) => {
     setTimeout(() => document.body.removeChild(dragImage), 0);
   };
 
+  // Touch event handlers for mobile drag support
+  const handleTouchStart = (e, item, source) => {
+    if (!isAdmin) return;
+    
+    // Store touch start time
+    e.currentTarget.touchStartTime = Date.now();
+    e.currentTarget.touchStartY = e.touches[0].clientY;
+    
+    // Add visual feedback
+    e.currentTarget.classList.add('touch-active');
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isAdmin || !e.currentTarget.touchStartTime) return;
+    
+    // Prevent scrolling if we're in a drag operation
+    const deltaY = Math.abs(e.touches[0].clientY - e.currentTarget.touchStartY);
+    if (deltaY > 10) {
+      // User is scrolling, not dragging
+      e.currentTarget.classList.remove('touch-active');
+      delete e.currentTarget.touchStartTime;
+    }
+  };
+
+  const handleTouchEnd = (e, item, source) => {
+    if (!isAdmin || !e.currentTarget.touchStartTime) return;
+    
+    // Calculate touch duration
+    const touchDuration = Date.now() - e.currentTarget.touchStartTime;
+    
+    // If long press (500ms+), simulate drag start
+    if (touchDuration >= 500) {
+      // Create drag data
+      const dragData = JSON.stringify({ ...item, source });
+      
+      // Create a custom drag event
+      const customEvent = {
+        dataTransfer: {
+          setData: (type, data) => {
+            customEvent.dataTransfer.data = data;
+          },
+          getData: () => customEvent.dataTransfer.data || dragData
+        },
+        preventDefault: () => {}
+      };
+      
+      // Trigger appropriate drag start handler
+      if (source === 'todo') {
+        handleTodoDragStart(customEvent, item);
+      } else {
+        handleDragStart(customEvent, item);
+      }
+      
+      // Visual feedback
+      e.currentTarget.classList.add('dragging');
+      setTimeout(() => {
+        e.currentTarget.classList.remove('dragging');
+      }, 1000);
+    }
+    
+    // Clean up
+    e.currentTarget.classList.remove('touch-active');
+    delete e.currentTarget.touchStartTime;
+    delete e.currentTarget.touchStartY;
+  };
+
+  // Mobile touch handling for drag simulation
+  const initMobileDrag = (e, item, source) => {
+    if (!isAdmin) return;
+    
+    // Prevent default behavior
+    e.preventDefault();
+    
+    // Create a visual drag feedback element
+    const dragFeedback = document.createElement('div');
+    dragFeedback.id = 'mobile-drag-feedback';
+    dragFeedback.textContent = item.title;
+    dragFeedback.className = 'fixed bg-blue-500 text-white px-3 py-2 rounded-lg text-sm z-50 shadow-lg pointer-events-none';
+    dragFeedback.style.left = `${e.touches[0].clientX}px`;
+    dragFeedback.style.top = `${e.touches[0].clientY}px`;
+    document.body.appendChild(dragFeedback);
+    
+    // Store initial touch position
+    const startX = e.touches[0].clientX;
+    const startY = e.touches[0].clientY;
+    
+    // Add visual feedback to the source element
+    e.currentTarget.classList.add('opacity-50');
+    
+    // Track touch movement
+    const handleTouchMove = (moveEvent) => {
+      moveEvent.preventDefault();
+      
+      // Update drag feedback position
+      const currentTouch = moveEvent.touches[0];
+      dragFeedback.style.left = `${currentTouch.clientX}px`;
+      dragFeedback.style.top = `${currentTouch.clientY}px`;
+      
+      // Check if we're over a calendar day
+      const elementUnderTouch = document.elementFromPoint(currentTouch.clientX, currentTouch.clientY);
+      if (elementUnderTouch && elementUnderTouch.classList.contains('calendar-day-cell') && elementUnderTouch.dataset.day) {
+        // Highlight the day cell
+        document.querySelectorAll('.calendar-day-cell').forEach(cell => {
+          cell.classList.remove('bg-blue-100', 'border-blue-400', 'ring-2', 'ring-blue-200');
+        });
+        elementUnderTouch.classList.add('bg-blue-100', 'border-blue-400', 'ring-2', 'ring-blue-200');
+      }
+    };
+    
+    // Handle touch end
+    const handleTouchEnd = (endEvent) => {
+      // Clean up
+      e.currentTarget.classList.remove('opacity-50');
+      document.body.removeChild(dragFeedback);
+      document.querySelectorAll('.calendar-day-cell').forEach(cell => {
+        cell.classList.remove('bg-blue-100', 'border-blue-400', 'ring-2', 'ring-blue-200');
+      });
+      
+      // Remove listeners
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+      
+      // Check if we dropped on a valid calendar day
+      const endTouch = endEvent.changedTouches[0];
+      const elementUnderTouch = document.elementFromPoint(endTouch.clientX, endTouch.clientY);
+      
+      if (elementUnderTouch && elementUnderTouch.classList.contains('calendar-day-cell') && elementUnderTouch.dataset.day) {
+        // Simulate drop
+        const day = parseInt(elementUnderTouch.dataset.day);
+        if (day) {
+          // Create a simulated drop event
+          const simulatedEvent = {
+            preventDefault: () => {},
+            dataTransfer: {
+              getData: () => JSON.stringify({ ...item, source })
+            }
+          };
+          handleDrop(simulatedEvent, day);
+        }
+      }
+    };
+    
+    // Add listeners
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd);
+  };
+
   // Handle drag end
   const handleDragEnd = () => {
     setDraggedTask(null);
     setDropTarget(null);
   };
 
-  // Handle drag over
+  // Handle drag over with mobile support
   const handleDragOver = (e, day) => {
     if (!isAdmin || !day) return;
     e.preventDefault();
@@ -1054,13 +1201,14 @@ const EnhancedCalendar = ({ view: propView }) => {
                 {/* Day headers */}
                 <div className="grid grid-cols-7 gap-1 mb-2">
                   {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
-                    <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
-                      {day.substring(0, 3)}
+                    <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                      <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                      <span className="sm:hidden">{day.substring(0, 1)}</span>
                     </div>
                   ))}
                 </div>
                 
-                {/* Calendar days */}
+                {/* Calendar days - taller on mobile for better readability */}
                 <div className="grid grid-cols-7 gap-1">
                   {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
                     const isCurrentDay = selectedYear === today.getFullYear() && 
@@ -1071,6 +1219,17 @@ const EnhancedCalendar = ({ view: propView }) => {
                     return (
                       <div
                         key={index}
+                        data-day={day}
+                        className={`calendar-day-cell min-h-24 sm:min-h-28 md:min-h-32 p-2 border rounded-lg relative
+                          ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                          ${isCurrentDay
+                            ? 'bg-blue-50 border-blue-200 ring-2 ring-blue-300'
+                            : 'border-gray-200'
+                          }
+                          ${dropTarget === day
+                            ? 'bg-blue-100 border-blue-400 ring-2 ring-blue-200'
+                            : ''
+                          }`}
                         onClick={() => handleDayClick(day)}
                         onDragOver={(e) => {
                           e.preventDefault();
@@ -1100,18 +1259,6 @@ const EnhancedCalendar = ({ view: propView }) => {
                         }}
                         onDragLeave={handleDragLeave}
                         onDrop={(e) => day && handleDrop(e, day)}
-                        className={`
-                          min-h-24 p-2 border rounded-lg relative
-                          ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
-                          ${isCurrentDay
-                            ? 'bg-blue-50 border-blue-200 ring-2 ring-blue-300'
-                            : 'border-gray-200'
-                          }
-                          ${dropTarget === day
-                            ? 'bg-blue-100 border-blue-400 ring-2 ring-blue-200'
-                            : ''
-                          }
-                        `}
                       >
                         {day && isDropTarget && (
                           <div className="absolute top-1 right-1 bg-blue-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
@@ -1125,7 +1272,7 @@ const EnhancedCalendar = ({ view: propView }) => {
                             }`}>
                               {day}
                             </div>
-                            <div className="space-y-1 overflow-y-auto max-h-32">
+                            <div className="space-y-1 overflow-y-auto max-h-32 sm:max-h-36 md:max-h-44">
                               {getTasksForDay(day).slice(0, 10).map(task => (
                                 <div 
                                   key={task.id}
@@ -1135,6 +1282,28 @@ const EnhancedCalendar = ({ view: propView }) => {
                                     draggable={isAdmin}
                                     onDragStart={(e) => isAdmin && handleDragStart(e, task)}
                                     onDragEnd={handleDragEnd}
+                                    onTouchStart={(e) => {
+                                      if (isAdmin) {
+                                        // For mobile, we'll use long press to initiate drag
+                                        e.currentTarget.longPressTimer = setTimeout(() => {
+                                          initMobileDrag(e, task, 'task');
+                                        }, 500); // 500ms long press
+                                      }
+                                    }}
+                                    onTouchMove={(e) => {
+                                      // Cancel long press if finger moves
+                                      if (e.currentTarget.longPressTimer) {
+                                        clearTimeout(e.currentTarget.longPressTimer);
+                                        delete e.currentTarget.longPressTimer;
+                                      }
+                                    }}
+                                    onTouchEnd={(e) => {
+                                      // Cancel long press timer
+                                      if (e.currentTarget.longPressTimer) {
+                                        clearTimeout(e.currentTarget.longPressTimer);
+                                        delete e.currentTarget.longPressTimer;
+                                      }
+                                    }}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       openTaskView(task);
@@ -1425,8 +1594,30 @@ const EnhancedCalendar = ({ view: propView }) => {
                     key={todo.id}
                     draggable
                     onDragStart={(e) => handleTodoDragStart(e, todo)}
-                    className={`p-3 border rounded-md cursor-move hover:bg-gray-50 relative ${
+                    onTouchStart={(e) => {
+                      // For mobile, we'll use long press to initiate drag
+                      e.currentTarget.longPressTimer = setTimeout(() => {
+                        initMobileDrag(e, todo, 'todo');
+                      }, 500); // 500ms long press
+                    }}
+                    onTouchMove={(e) => {
+                      // Cancel long press if finger moves
+                      if (e.currentTarget.longPressTimer) {
+                        clearTimeout(e.currentTarget.longPressTimer);
+                        delete e.currentTarget.longPressTimer;
+                      }
+                    }}
+                    onTouchEnd={(e) => {
+                      // Cancel long press timer
+                      if (e.currentTarget.longPressTimer) {
+                        clearTimeout(e.currentTarget.longPressTimer);
+                        delete e.currentTarget.longPressTimer;
+                      }
+                    }}
+                    className={`p-3 border rounded-md cursor-move hover:bg-gray-50 relative touch-manipulation ${
                       todo.completed ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'
+                    } ${
+                      draggedTask && draggedTask.id === todo.id ? 'opacity-50 ring-2 ring-blue-500' : ''
                     }`}
                   >
                     <button
@@ -1495,6 +1686,14 @@ const EnhancedCalendar = ({ view: propView }) => {
               <p>Drag todos to calendar days to create tasks</p>
               <p className="mt-1">Select Copy/Move before dragging</p>
               <p className="mt-1">Check todos to mark them as completed</p>
+              {/* Mobile instruction */}
+              <p className="mt-2 text-blue-600 font-medium md:hidden">
+                Touch and hold to drag on mobile
+              </p>
+              {/* Desktop instruction */}
+              <p className="mt-2 text-blue-600 font-medium hidden md:block">
+                Drag and drop to move items
+              </p>
             </div>
           </div>
         </div>
