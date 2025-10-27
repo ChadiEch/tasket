@@ -1156,9 +1156,14 @@ const EnhancedCalendar = ({ view: propView }) => {
                     className={`bg-white rounded-lg shadow p-4 cursor-pointer hover:shadow-md transition-shadow ${
                       isCurrentMonth ? 'ring-2 ring-indigo-500' : ''
                     }`}
-                    onClick={() => handleYearViewMonthClick(index)}
                   >
-                    <div className="flex justify-between items-center mb-2">
+                    <div 
+                      className="flex justify-between items-center mb-2 cursor-pointer hover:bg-gray-50 rounded p-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleYearViewMonthClick(index);
+                      }}
+                    >
                       <h3 className={`text-lg font-medium ${isCurrentMonth ? 'text-indigo-600' : 'text-gray-900'}`}>
                         {month}
                       </h3>
@@ -1178,7 +1183,7 @@ const EnhancedCalendar = ({ view: propView }) => {
                         return (
                           <div 
                             key={i} 
-                            className={`text-xs text-center py-1 rounded-full ${
+                            className={`text-xs text-center py-1 rounded-full cursor-pointer hover:bg-gray-100 ${
                               day && hasTasksOnDate(selectedYear, index, day) 
                                 ? isCurrentDay 
                                   ? 'bg-indigo-600 text-white font-bold' 
@@ -1189,6 +1194,12 @@ const EnhancedCalendar = ({ view: propView }) => {
                                     ? 'text-gray-700' 
                                     : 'text-gray-300'
                             }`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (day) {
+                                handleYearViewDayClick(selectedYear, index, day);
+                              }
+                            }}
                           >
                             {day || ''}
                           </div>
@@ -1237,6 +1248,46 @@ const EnhancedCalendar = ({ view: propView }) => {
                         data-day={day}
                         className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
                           ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                          ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                          ${isDropTarget ? 'bg-indigo-100' : ''}
+                        `}
+                        onClick={() => handleDayClick(day)}
+                        onDragOver={(e) => handleDragOver(e, day)}
+                        onDragLeave={handleDragLeave}
+                        onDrop={(e) => handleDrop(e, day)}
+                      >
+                        <div className="text-center text-sm font-medium">
+                          {day || ''}
+                        </div>
+                        {day && getTasksForDay(day).map(task => (
+                          <div
+                            key={task.id}
+                            className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                              ${getStatusColor(task.status)}
+                            `}
+                            draggable={isAdmin}
+                            onDragStart={(e) => handleDragStart(e, task)}
+                            onClick={() => openTaskView(task)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                                <span className="task-title">{task.title}</span>
+                              </div>
+                              <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                            </div>
+                            <div className="task-description text-sm text-gray-600">
+                              {task.description}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
                           ${isCurrentDay
                             ? 'bg-blue-50 border-blue-200 ring-2 ring-blue-300'
                             : 'border-gray-200'
