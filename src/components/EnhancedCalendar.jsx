@@ -209,9 +209,27 @@ const EnhancedCalendar = ({ view: propView }) => {
 
   // Handle day click in year view
   const handleYearViewDayClick = (year, month, day) => {
-    if (!day) return
-    const selectedDate = new Date(year, month, day)
-    navigateToDayView(selectedDate)
+    console.log('handleYearViewDayClick called with:', year, month, day);
+    if (!day) {
+      console.log('Day is null or undefined, returning');
+      return;
+    }
+    // Validate inputs
+    if (typeof year !== 'number' || typeof month !== 'number' || typeof day !== 'number') {
+      console.log('Invalid input types:', { year, month, day });
+      return;
+    }
+    console.log('Creating date with year:', year, 'month:', month, 'day:', day);
+    const selectedDate = new Date(year, month, day);
+    console.log('Selected date created:', selectedDate);
+    // Check if date is valid
+    if (isNaN(selectedDate.getTime())) {
+      console.log('Invalid date created');
+      return;
+    }
+    console.log('Calling navigateToDayView with selectedDate');
+    navigateToDayView(selectedDate);
+    console.log('navigateToDayView called');
   }
 
   // Handle month click in year view (navigate to month view)
@@ -1143,82 +1161,370 @@ const EnhancedCalendar = ({ view: propView }) => {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
-        {/* Calendar Section */}
-        <div className="flex-1">
-          {/* Year View - Show all months */}
-          {view === 'year' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {monthNames.map((month, index) => {
-                const isCurrentMonth = selectedYear === today.getFullYear() && index === today.getMonth();
+        {/* Tasks Section */}
+        <div className="w-full lg:w-1/4">
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Tasks</h2>
+          <ul className="space-y-4">
+            {tasks.map(task => (
+              <li key={task.id} className="bg-white rounded-lg shadow p-4">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-lg font-medium text-gray-900">{task.title}</h3>
+                  <button
+                    onClick={() => handleTaskDelete(task.id)}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6" />
+                    </svg>
+                  </button>
+                </div>
+                <p className="text-gray-700">{task.description}</p>
+                <div className="mt-4">
+                  <button
+                    onClick={() => handleTaskEdit(task.id)}
+                    className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    Edit
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      {/* Calendar Section */}
+      <div className="flex-1">
+        {/* Year View - Show all months */}
+        {view === 'year' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {monthNames.map((month, index) => {
+              const isCurrentMonth = selectedYear === today.getFullYear() && index === today.getMonth();
+              return (
+                <div 
+                  key={index} 
+                  className={`bg-white rounded-lg shadow p-4 cursor-pointer hover:shadow-md transition-shadow ${
+                    isCurrentMonth ? 'ring-2 ring-indigo-500' : ''
+                  }`}
+                >
+                  <div 
+                    className="flex justify-between items-center mb-2 cursor-pointer hover:bg-gray-50 rounded p-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleYearViewMonthClick(index);
+                    }}
+                  >
+                    <h3 className={`text-lg font-medium ${isCurrentMonth ? 'text-indigo-600' : 'text-gray-900'}`}>
+                      {month}
+                    </h3>
+                    <span className="text-sm text-gray-500">{selectedYear}</span>
+                  </div>
+                  
+                  {/* Mini calendar for the month */}
+                  <div className="grid grid-cols-7 gap-1">
+                    {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
+                      <div key={i} className="text-xs text-center text-gray-500 py-1">{day}</div>
+                    ))}
+                    
+                    {generateCalendarDays(selectedYear, index).map((day, i) => {
+                      const isCurrentDay = selectedYear === today.getFullYear() && 
+                                           index === today.getMonth() && 
+                                           day === today.getDate();
+                      return (
+                        <div 
+                          key={i} 
+                          className={`text-xs text-center py-4 rounded-full cursor-pointer hover:bg-gray-100 flex items-center justify-center ${
+                            day && hasTasksOnDate(selectedYear, index, day) 
+                              ? isCurrentDay 
+                                ? 'bg-indigo-600 text-white font-bold' 
+                                : 'bg-indigo-100 text-indigo-800 font-medium' 
+                              : isCurrentDay
+                                ? 'bg-indigo-500 text-white font-bold'
+                                : day 
+                                  ? 'text-gray-700' 
+                                  : 'text-gray-300'
+                          }`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (day) {
+                              console.log('Year view day clicked:', selectedYear, index, day);
+                              console.log('Creating date with:', selectedYear, index, day);
+                              const testDate = new Date(selectedYear, index, day);
+                              console.log('Test date created:', testDate);
+                              handleYearViewDayClick(selectedYear, index, day);
+                            } else {
+                              console.log('Day is null or undefined');
+                            }
+                          }}
+                        >
+                          {day || ''}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Days View - Show calendar for selected month */}
+        {view === 'days' && (
+          <div className="bg-white rounded-lg shadow">
+            {/* Month header */}
+            <div className="flex items-center justify-center px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-medium text-gray-900">
+                {monthNames[selectedMonth]} {selectedYear}
+              </h3>
+            </div>
+            {/* Calendar grid */}
+            <div className="grid grid-cols-7 gap-1">
+              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
+                <div key={i} className="text-xs text-center text-gray-500 py-1">{day}</div>
+              ))}
+              {generateCalendarDays(selectedYear, selectedMonth).map((day, i) => {
+                const isCurrentDay = selectedYear === today.getFullYear() && 
+                                     selectedMonth === today.getMonth() && 
+                                     day === today.getDate();
                 return (
                   <div 
-                    key={index} 
-                    className={`bg-white rounded-lg shadow p-4 cursor-pointer hover:shadow-md transition-shadow ${
-                      isCurrentMonth ? 'ring-2 ring-indigo-500' : ''
+                    key={i} 
+                    className={`text-sm text-center py-2 rounded-full cursor-pointer hover:bg-gray-100 flex items-center justify-center ${
+                      day && hasTasksOnDate(selectedYear, selectedMonth, day) 
+                        ? isCurrentDay 
+                          ? 'bg-indigo-600 text-white font-bold' 
+                          : 'bg-indigo-100 text-indigo-800 font-medium' 
+                        : isCurrentDay
+                          ? 'bg-indigo-500 text-white font-bold'
+                          : day 
+                            ? 'text-gray-700' 
+                            : 'text-gray-300'
                     }`}
+                    onClick={() => handleDayClick(day)}
                   >
-                    <div 
-                      className="flex justify-between items-center mb-2 cursor-pointer hover:bg-gray-50 rounded p-1"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleYearViewMonthClick(index);
-                      }}
-                    >
-                      <h3 className={`text-lg font-medium ${isCurrentMonth ? 'text-indigo-600' : 'text-gray-900'}`}>
-                        {month}
-                      </h3>
-                      <span className="text-sm text-gray-500">{selectedYear}</span>
-                    </div>
-                    
-                    {/* Mini calendar for the month */}
-                    <div className="grid grid-cols-7 gap-1">
-                      {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
-                        <div key={i} className="text-xs text-center text-gray-500 py-1">{day}</div>
-                      ))}
-                      
-                      {generateCalendarDays(selectedYear, index).map((day, i) => {
-                        const isCurrentDay = selectedYear === today.getFullYear() && 
-                                             index === today.getMonth() && 
-                                             day === today.getDate();
-                        return (
-                          <div 
-                            key={i} 
-                            className={`text-xs text-center py-1 rounded-full cursor-pointer hover:bg-gray-100 ${
-                              day && hasTasksOnDate(selectedYear, index, day) 
-                                ? isCurrentDay 
-                                  ? 'bg-indigo-600 text-white font-bold' 
-                                  : 'bg-indigo-100 text-indigo-800 font-medium' 
-                                : isCurrentDay
-                                  ? 'bg-indigo-500 text-white font-bold'
-                                  : day 
-                                    ? 'text-gray-700' 
-                                    : 'text-gray-300'
-                            }`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (day) {
-                                handleYearViewDayClick(selectedYear, index, day);
-                              }
-                            }}
-                          >
-                            {day || ''}
-                          </div>
-                        )
-                      })}
-                    </div>
+                    {day || ''}
                   </div>
                 )
               })}
             </div>
+            {/* Tasks for the selected day */}
+            {viewingTask && (
+              <TaskDetail task={viewingTask} closeTaskView={closeTaskView} openAttachment={openAttachment} />
+            )}
+          </div>
+        )}
+                      ? isCurrentDay 
+                        ? 'bg-indigo-600 text-white font-bold' 
+                        : 'bg-indigo-100 text-indigo-800 font-medium' 
+                      : isCurrentDay
+                        ? 'bg-indigo-500 text-white font-bold'
+                        : day 
+                          ? 'text-gray-700' 
+                          : 'text-gray-300'
+                  }`}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                  draggable={isAdmin}
+                  onDragStart={(e) => handleDragStart(e, { id: day })}
+                  onTouchStart={(e) => handleTouchStart(e, { id: day })}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={(e) => handleTouchEnd(e, { id: day })}
+                >
+                  {day || ''}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+              </div>
+            </div>
           )}
+        </div>
 
-          {/* Days View - Show calendar for selected month */}
-          {view === 'days' && (
-            <div className="bg-white rounded-lg shadow">
-              {/* Month header */}
-              <div className="flex items-center justify-center px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900">
-                  {monthNames[selectedMonth]} {selectedYear}
+        {/* Task Detail Section */}
+        {viewingTask && (
+          <TaskDetail 
+            task={viewingTask} 
+            closeTaskView={closeTaskView} 
+            openAttachment={openAttachment} 
+            getStatusColor={getStatusColor} 
+            getPriorityColor={getPriorityColor} 
+            handleTaskDelete={handleTaskDelete} 
+            handleTaskStatusChange={handleTaskStatusChange}
+          />
+        )}
+
+        {/* Delete Confirmation Dialog */}
+        {showDeleteDialog && (
+          <DeleteConfirmationDialog 
+            task={taskToDelete} 
+            handleDeleteConfirm={handleDeleteConfirm} 
+            setShowDeleteDialog={setShowDeleteDialog}
+          />
+        )}
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-1/3">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                {showTodoForm ? 'Close' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={addNewTodo} className="space-y-4">
+                <div>
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    name="title"
+                    value={newTodo.title}
+                    onChange={handleTodoFormChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    name="description"
+                    value={newTodo.description}
+                    onChange={handleTodoFormChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="todoPriority" className="block text-sm font-medium text-gray-700">Priority</label>
+                  <select
+                    id="todoPriority"
+                    name="priority"
+                    value={newTodo.priority}
+                    onChange={handleTodoFormChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="todoEstimatedHours" className="block text-sm font-medium text-gray-700">Estimated Hours</label>
+                  <input
+                    type="number"
+                    id="todoEstimatedHours"
+                    name="estimated_hours"
+                    value={newTodo.estimated_hours}
+                    onChange={handleTodoFormChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    step="0.01"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <div className="mt-1 flex items-center space-x-2">
+                    <input
+                      type="file"
+                      id="todoAttachments"
+                      onChange={handleTodoFileUpload}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="todoAttachments"
+                      className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                    >
+                      Upload File
+                    </label>
+                    <button
+                      type="button"
+                      onClick={addTodoAttachment}
+                      className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      Add Link
+                    </button>
+                  </div>
+                  {newTodo.attachments.map((attachment, index) => (
+                    <div key={index} className="mt-2 flex items-center space-x-2">
+                      <span className="text-sm text-gray-700">{attachment.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeTodoAttachment(attachment.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    Add Todo
+                  </button>
+                </div>
+              </form>
+            )}
+            <ul className="divide-y divide-gray-200">
+              {todoList.map(todo => (
+                <li key={todo.id} className="py-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm font-medium ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => openTaskFromNotification(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      >
+                        Open
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                 </h3>
               </div>
               
