@@ -35,7 +35,7 @@ const EnhancedCalendar = ({ view: propView }) => {
     attachments: []
   });
   const [showTodoForm, setShowTodoForm] = useState(false);
-  const [dragAction, setDragAction] = useState('copy'); // 'copy' or 'move'
+  const [dragAction, setDragAction] = useState('move'); // 'copy' or 'move'
 
   const today = new Date();
 
@@ -433,6 +433,9 @@ const EnhancedCalendar = ({ view: propView }) => {
     // Prevent default behavior
     e.preventDefault();
     
+    // Store the dragged item
+    setDraggedTask({ ...item, source });
+    
     // Create a visual drag feedback element
     const dragFeedback = document.createElement('div');
     dragFeedback.id = 'mobile-drag-feedback';
@@ -461,11 +464,17 @@ const EnhancedCalendar = ({ view: propView }) => {
       // Check if we're over a calendar day
       const elementUnderTouch = document.elementFromPoint(currentTouch.clientX, currentTouch.clientY);
       if (elementUnderTouch && elementUnderTouch.classList.contains('calendar-day-cell') && elementUnderTouch.dataset.day) {
-        // Highlight the day cell
-        document.querySelectorAll('.calendar-day-cell').forEach(cell => {
-          cell.classList.remove('bg-blue-100', 'border-blue-400', 'ring-2', 'ring-blue-200');
-        });
-        elementUnderTouch.classList.add('bg-blue-100', 'border-blue-400', 'ring-2', 'ring-blue-200');
+        const day = parseInt(elementUnderTouch.dataset.day);
+        if (day && day !== dropTarget) {
+          // Update drop target
+          setDropTarget(day);
+          
+          // Highlight the day cell
+          document.querySelectorAll('.calendar-day-cell').forEach(cell => {
+            cell.classList.remove('bg-blue-100', 'border-blue-400', 'ring-2', 'ring-blue-200');
+          });
+          elementUnderTouch.classList.add('bg-blue-100', 'border-blue-400', 'ring-2', 'ring-blue-200');
+        }
       }
     };
     
@@ -473,7 +482,9 @@ const EnhancedCalendar = ({ view: propView }) => {
     const handleTouchEnd = (endEvent) => {
       // Clean up
       e.currentTarget.classList.remove('opacity-50');
-      document.body.removeChild(dragFeedback);
+      if (document.getElementById('mobile-drag-feedback')) {
+        document.body.removeChild(dragFeedback);
+      }
       document.querySelectorAll('.calendar-day-cell').forEach(cell => {
         cell.classList.remove('bg-blue-100', 'border-blue-400', 'ring-2', 'ring-blue-200');
       });
@@ -500,6 +511,10 @@ const EnhancedCalendar = ({ view: propView }) => {
           handleDrop(simulatedEvent, day);
         }
       }
+      
+      // Reset drag state
+      setDraggedTask(null);
+      setDropTarget(null);
     };
     
     // Add listeners
@@ -545,7 +560,7 @@ const EnhancedCalendar = ({ view: propView }) => {
   // Handle drag leave
   const handleDragLeave = (e) => {
     // Only clear drop target if we're leaving the calendar day cell
-    if (e.target.classList.contains('min-h-24')) {
+    if (e.target.classList.contains('calendar-day-cell')) {
       setDropTarget(null);
     }
   };
@@ -1208,7 +1223,7 @@ const EnhancedCalendar = ({ view: propView }) => {
                   ))}
                 </div>
                 
-                {/* Calendar days - taller on mobile for better readability */}
+                {/* Calendar days - wider on mobile for better readability */}
                 <div className="grid grid-cols-7 gap-1">
                   {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
                     const isCurrentDay = selectedYear === today.getFullYear() && 
@@ -1220,7 +1235,7 @@ const EnhancedCalendar = ({ view: propView }) => {
                       <div
                         key={index}
                         data-day={day}
-                        className={`calendar-day-cell min-h-24 sm:min-h-28 md:min-h-32 p-2 border rounded-lg relative
+                        className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
                           ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
                           ${isCurrentDay
                             ? 'bg-blue-50 border-blue-200 ring-2 ring-blue-300'
@@ -1259,6 +1274,27 @@ const EnhancedCalendar = ({ view: propView }) => {
                         }}
                         onDragLeave={handleDragLeave}
                         onDrop={(e) => day && handleDrop(e, day)}
+                        onTouchMove={(e) => {
+                          // Handle touch move for mobile drag between days
+                          if (draggedTask) {
+                            e.preventDefault();
+                            const touch = e.touches[0];
+                            const elementUnderTouch = document.elementFromPoint(touch.clientX, touch.clientY);
+                            if (elementUnderTouch && elementUnderTouch.classList.contains('calendar-day-cell') && elementUnderTouch.dataset.day) {
+                              const day = parseInt(elementUnderTouch.dataset.day);
+                              if (day && day !== dropTarget) {
+                                // Update drop target
+                                setDropTarget(day);
+                                
+                                // Highlight the day cell
+                                document.querySelectorAll('.calendar-day-cell').forEach(cell => {
+                                  cell.classList.remove('bg-blue-100', 'border-blue-400', 'ring-2', 'ring-blue-200');
+                                });
+                                elementUnderTouch.classList.add('bg-blue-100', 'border-blue-400', 'ring-2', 'ring-blue-200');
+                              }
+                            }
+                          }
+                        }}
                       >
                         {day && isDropTarget && (
                           <div className="absolute top-1 right-1 bg-blue-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
@@ -1308,7 +1344,7 @@ const EnhancedCalendar = ({ view: propView }) => {
                                       e.stopPropagation();
                                       openTaskView(task);
                                     }}
-                                    className={`text-xs p-1 rounded truncate cursor-pointer hover:bg-opacity-80 ${
+                                    className={`text-xs p-2 rounded truncate cursor-pointer hover:bg-opacity-80 ${
                                       task.status === 'completed' 
                                         ? 'bg-green-100 text-green-800 line-through' 
                                         : task.priority === 'high' || task.priority === 'urgent'
@@ -1566,7 +1602,7 @@ const EnhancedCalendar = ({ view: propView }) => {
                 onClick={() => handleDragActionChange('copy')}
                 className={`flex-1 px-3 py-2 rounded-md text-sm ${
                   dragAction === 'copy' 
-                    ? 'bg-indigo-600 text-white' 
+                    ? 'bg-indigo-600 text-white ring-2 ring-indigo-300' 
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
               >
@@ -1576,7 +1612,7 @@ const EnhancedCalendar = ({ view: propView }) => {
                 onClick={() => handleDragActionChange('move')}
                 className={`flex-1 px-3 py-2 rounded-md text-sm ${
                   dragAction === 'move' 
-                    ? 'bg-indigo-600 text-white' 
+                    ? 'bg-indigo-600 text-white ring-2 ring-indigo-300' 
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
               >
@@ -1684,7 +1720,7 @@ const EnhancedCalendar = ({ view: propView }) => {
             
             <div className="mt-4 text-xs text-gray-500">
               <p>Drag todos to calendar days to create tasks</p>
-              <p className="mt-1">Select Copy/Move before dragging</p>
+              <p className="mt-1">Current action: <span className="font-medium text-indigo-600">{dragAction}</span> (Select Copy/Move before dragging)</p>
               <p className="mt-1">Check todos to mark them as completed</p>
               {/* Mobile instruction */}
               <p className="mt-2 text-blue-600 font-medium md:hidden">

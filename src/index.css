@@ -50,14 +50,20 @@
 /* Responsive calendar adjustments */
 @media (max-width: 640px) {
   .calendar-day-cell {
-    min-height: 100px !important;
+    min-height: 120px !important;
   }
   
   .calendar-day-cell .text-sm {
-    font-size: 0.75rem;
+    font-size: 0.875rem;
   }
   
   .calendar-day-cell .text-xs {
-    font-size: 0.65rem;
+    font-size: 0.75rem;
+  }
+  
+  /* Improve task visibility on mobile */
+  .calendar-day-cell .space-y-1 {
+    max-height: 80px;
+    overflow-y: auto;
   }
 }
