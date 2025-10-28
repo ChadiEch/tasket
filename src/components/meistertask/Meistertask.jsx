@@ -4,9 +4,10 @@ import { useAuth } from '../../context/AuthContext';
 import TaskCard from './TaskCard';
 import TaskForm from './TaskForm';
 import TaskDetail from './TaskDetail';
+import ProjectForm from '../projects/ProjectForm'; // Add ProjectForm import
 
 const Meistertask = () => {
-  const { tasks, projects, employees, currentUser, isAdmin, updateTask, createTask } = useApp();
+  const { tasks, projects, employees, currentUser, isAdmin, updateTask, createTask, addTaskState } = useApp();
   const { user } = useAuth();
   
   const [selectedProject, setSelectedProject] = useState(null);
@@ -33,6 +34,10 @@ const Meistertask = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterAssignee, setFilterAssignee] = useState('');
   const [filterPriority, setFilterPriority] = useState('');
+  
+  // Project management states
+  const [showProjectForm, setShowProjectForm] = useState(false);
+  const [editingProject, setEditingProject] = useState(null);
   
   // Load project columns when a project is selected
   useEffect(() => {
@@ -230,14 +235,12 @@ const Meistertask = () => {
     setEditingTask(null);
   };
   
-  const handleProjectSelect = (projectId) => {
-    if (!projectId) {
-      setSelectedProject(null);
-      return;
-    }
-    
-    const project = projects.find(p => p.id === projectId);
+  const handleProjectSelect = (project) => {
     setSelectedProject(project);
+  };
+  
+  const handleBackToProjects = () => {
+    setSelectedProject(null);
   };
   
   // Calculate stats for overview
@@ -268,198 +271,317 @@ const Meistertask = () => {
   
   const stats = calculateStats();
   
+  // Project management functions
+  const handleCreateProject = () => {
+    setEditingProject(null);
+    setShowProjectForm(true);
+  };
+  
+  const handleEditProject = (project) => {
+    setEditingProject(project);
+    setShowProjectForm(true);
+  };
+  
+  const handleProjectSaved = (project) => {
+    setShowProjectForm(false);
+    setEditingProject(null);
+    // If we were editing the currently selected project, update it
+    if (selectedProject && selectedProject.id === project.id) {
+      setSelectedProject(project);
+    }
+  };
+  
+  const handleProjectCancelled = () => {
+    setShowProjectForm(false);
+    setEditingProject(null);
+  };
+  
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString();
+  };
+  
   return (
     <div className="p-6">
-      {/* Project Selector */}
-      <div className="mb-6">
-        <div className="flex items-center space-x-4">
-          <label htmlFor="project-select" className="text-sm font-medium text-gray-700">
-            Select Project:
-          </label>
-          <select
-            id="project-select"
-            value={selectedProject?.id || ''}
-            onChange={(e) => handleProjectSelect(e.target.value)}
-            className="block w-64 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-          >
-            <option value="">All Tasks (No Project)</option>
-            {projects && projects.map(project => (
-              <option key={project.id} value={project.id}>
-                {project.title}
-              </option>
-            ))}
-          </select>
+      {/* Project Form Modal */}
+      {showProjectForm && (
+        <ProjectForm
+          project={editingProject}
+          onSaved={handleProjectSaved}
+          onCancelled={handleProjectCancelled}
+        />
+      )}
+      
+      {/* Show project cards when no project is selected */}
+      {!selectedProject ? (
+        <div>
+          {/* Header */}
+          <div className="mb-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Projects</h1>
+                <p className="text-gray-600">Select a project to view its tasks</p>
+              </div>
+              {isAdmin && (
+                <button
+                  onClick={handleCreateProject}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                >
+                  + Create Project
+                </button>
+              )}
+            </div>
+          </div>
           
-          {selectedProject && (
-            <div className="flex items-center">
-              <span className="text-sm text-gray-600">
-                Project: <span className="font-medium">{selectedProject.title}</span>
-              </span>
-              <button 
-                onClick={() => setSelectedProject(null)}
-                className="ml-2 text-sm text-indigo-600 hover:text-indigo-800"
-              >
-                Clear
-              </button>
+          {/* Project Cards */}
+          {projects.length === 0 ? (
+            <div className="bg-white rounded-lg shadow p-8 text-center">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              <h3 className="mt-2 text-lg font-medium text-gray-900">No projects</h3>
+              <p className="mt-1 text-gray-500">Get started by creating a new project.</p>
+              {isAdmin && (
+                <div className="mt-6">
+                  <button
+                    onClick={handleCreateProject}
+                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    <svg className="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Create New Project
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {projects.map((project) => (
+                <div key={project.id} className="bg-white rounded-lg shadow overflow-hidden">
+                  <div className="p-6">
+                    <div className="flex justify-between items-start">
+                      <h3 className="text-lg font-medium text-gray-900">{project.title}</h3>
+                      {isAdmin && (
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleEditProject(project)}
+                            className="text-gray-400 hover:text-gray-500"
+                          >
+                            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                            </svg>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <p className="mt-2 text-gray-600">{project.description || 'No description provided'}</p>
+                    <div className="mt-4 flex items-center text-sm text-gray-500">
+                      <svg className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                      </svg>
+                      {formatDate(project.start_date)} - {formatDate(project.end_date)}
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 px-6 py-3 flex justify-between items-center">
+                    <button
+                      onClick={() => handleProjectSelect(project)}
+                      className="text-indigo-600 hover:text-indigo-900 font-medium"
+                    >
+                      View Tasks
+                    </button>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                      {formatDate(project.start_date) <= new Date().toISOString().split('T')[0] && 
+                       formatDate(project.end_date) >= new Date().toISOString().split('T')[0] ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
-      </div>
-      
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
-          {selectedProject ? `${selectedProject.title} Board` : 'MeisterTask Board'}
-        </h1>
-        <p className="text-gray-600">
-          {selectedProject ? `Tasks for project: ${selectedProject.title}` : 'Visual task management with Kanban boards'}
-        </p>
-      </div>
-      
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm font-medium text-gray-500">Total Tasks</div>
-          <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm font-medium text-gray-500">Completed</div>
-          <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm font-medium text-gray-500">In Progress</div>
-          <div className="text-2xl font-bold text-yellow-600">{stats.inProgress}</div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm font-medium text-gray-500">Overdue</div>
-          <div className="text-2xl font-bold text-red-600">{stats.overdue}</div>
-        </div>
-      </div>
-      
-      {/* Controls */}
-      <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="flex flex-col md:flex-row md:items-center gap-4">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search tasks..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            />
-            <svg className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+      ) : (
+        // Show Kanban board when a project is selected
+        <div>
+          {/* Project Header */}
+          <div className="mb-6">
+            <div className="flex items-center space-x-4 mb-4">
+              <button 
+                onClick={handleBackToProjects}
+                className="flex items-center text-indigo-600 hover:text-indigo-800"
+              >
+                <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Projects
+              </button>
+              
+              {isAdmin && (
+                <button
+                  onClick={() => handleEditProject(selectedProject)}
+                  className="flex items-center text-gray-600 hover:text-gray-800"
+                >
+                  <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Edit Project
+                </button>
+              )}
+            </div>
+            
+            <h1 className="text-2xl font-bold text-gray-900">
+              {selectedProject.title} Board
+            </h1>
+            <p className="text-gray-600">
+              Tasks for project: {selectedProject.title}
+            </p>
           </div>
           
-          <select
-            value={filterAssignee}
-            onChange={(e) => setFilterAssignee(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-          >
-            <option value="">All Assignees</option>
-            {employees && employees.map(employee => (
-              <option key={employee.id} value={employee.id}>
-                {employee.name}
-              </option>
-            ))}
-          </select>
+          {/* Stats Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="text-sm font-medium text-gray-500">Total Tasks</div>
+              <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+            </div>
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="text-sm font-medium text-gray-500">Completed</div>
+              <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
+            </div>
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="text-sm font-medium text-gray-500">In Progress</div>
+              <div className="text-2xl font-bold text-yellow-600">{stats.inProgress}</div>
+            </div>
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="text-sm font-medium text-gray-500">Overdue</div>
+              <div className="text-2xl font-bold text-red-600">{stats.overdue}</div>
+            </div>
+          </div>
           
-          <select
-            value={filterPriority}
-            onChange={(e) => setFilterPriority(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-          >
-            <option value="">All Priorities</option>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="urgent">Urgent</option>
-          </select>
-        </div>
-        
-        <div className="flex space-x-2">
-          <button
-            onClick={handleCreateTask}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-          >
-            + Add Task
-          </button>
-          <button
-            onClick={handleAddColumn}
-            className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-          >
-            + Add Column
-          </button>
-        </div>
-      </div>
-      
-      {/* Kanban Board */}
-      <div className="overflow-x-auto">
-        <div className="flex space-x-4 min-w-max">
-          {displayColumns.map(column => (
-            <div 
-              key={column.id}
-              className="flex-shrink-0 w-80"
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, column.id)}
-            >
-              <div className={`rounded-t-lg px-4 py-2 ${column.color}`}>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="font-semibold text-gray-800">{column.title}</h3>
-                    <span className="text-sm text-gray-600">({tasksByColumn[column.id]?.length || 0})</span>
+          {/* Controls */}
+          <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex flex-col md:flex-row md:items-center gap-4">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search tasks..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+                <svg className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              
+              <select
+                value={filterAssignee}
+                onChange={(e) => setFilterAssignee(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="">All Assignees</option>
+                {employees && employees.map(employee => (
+                  <option key={employee.id} value={employee.id}>
+                    {employee.name}
+                  </option>
+                ))}
+              </select>
+              
+              <select
+                value={filterPriority}
+                onChange={(e) => setFilterPriority(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="">All Priorities</option>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+            
+            <div className="flex space-x-2">
+              <button
+                onClick={handleCreateTask}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              >
+                + Add Task
+              </button>
+              <button
+                onClick={handleAddColumn}
+                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+              >
+                + Add Column
+              </button>
+            </div>
+          </div>
+          
+          {/* Kanban Board */}
+          <div className="overflow-x-auto">
+            <div className="flex space-x-4 min-w-max">
+              {displayColumns.map(column => (
+                <div 
+                  key={column.id}
+                  className="flex-shrink-0 w-80"
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, column.id)}
+                >
+                  <div className={`rounded-t-lg px-4 py-2 ${column.color}`}>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="font-semibold text-gray-800">{column.title}</h3>
+                        <span className="text-sm text-gray-600">({tasksByColumn[column.id]?.length || 0})</span>
+                      </div>
+                      <div className="flex space-x-1">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditColumn(column);
+                          }}
+                          className="text-gray-600 hover:text-gray-800"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        {displayColumns.length > 1 && (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteColumn(column.id);
+                            }}
+                            className="text-gray-600 hover:text-red-600"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex space-x-1">
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditColumn(column);
-                      }}
-                      className="text-gray-600 hover:text-gray-800"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    </button>
-                    {displayColumns.length > 1 && (
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteColumn(column.id);
-                        }}
-                        className="text-gray-600 hover:text-red-600"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
+                  <div className="bg-gray-50 rounded-b-lg min-h-96 p-4">
+                    {tasksByColumn[column.id] && tasksByColumn[column.id].map(task => (
+                      <TaskCard 
+                        key={task.id}
+                        task={task}
+                        employees={employees}
+                        onEdit={handleEditTask}
+                        onView={handleViewTask}
+                        onDragStart={handleDragStart}
+                      />
+                    ))}
+                    
+                    {(!tasksByColumn[column.id] || tasksByColumn[column.id].length === 0) && (
+                      <div className="text-center py-8 text-gray-500">
+                        <p>No tasks in this column</p>
+                      </div>
                     )}
                   </div>
                 </div>
-              </div>
-              <div className="bg-gray-50 rounded-b-lg min-h-96 p-4">
-                {tasksByColumn[column.id] && tasksByColumn[column.id].map(task => (
-                  <TaskCard 
-                    key={task.id}
-                    task={task}
-                    employees={employees}
-                    onEdit={handleEditTask}
-                    onView={handleViewTask}
-                    onDragStart={handleDragStart}
-                  />
-                ))}
-                
-                {(!tasksByColumn[column.id] || tasksByColumn[column.id].length === 0) && (
-                  <div className="text-center py-8 text-gray-500">
-                    <p>No tasks in this column</p>
-                  </div>
-                )}
-              </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
-      </div>
+      )}
       
       {/* Task Detail Modal */}
       {selectedTask && (

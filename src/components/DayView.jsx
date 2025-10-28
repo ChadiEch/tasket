@@ -6,7 +6,7 @@ import AttachmentViewer from './AttachmentViewer'
 import DeleteConfirmationDialog from './tasks/DeleteConfirmationDialog'
 
 const DayView = () => {
-  const { selectedDate, selectedEmployee, getTasksForDate, navigateToCalendar, navigateToTasks, currentUser, deleteTask, isAdmin, tasks, updateTask } = useApp()
+  const { selectedDate, selectedEmployee, getTasksForDate, navigateToCalendar, navigateToTasks, currentUser, deleteTask, isAdmin, tasks, updateTask, projects } = useApp()
   const { subscribeToTaskUpdates, connected } = useWebSocket()
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [editingTask, setEditingTask] = useState(null)

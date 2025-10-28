@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { tasksAPI } from '../../lib/api'; // Import tasksAPI for file uploads
 
 const TaskForm = ({ task, employeeId, date, onClose }) => {
-  const { createTask, updateTask, deleteTask, userRole, currentUser, employees, updateTaskState, addTaskState } = useApp();
+  const { createTask, updateTask, deleteTask, userRole, currentUser, employees, updateTaskState, addTaskState, projects } = useApp();
   const isEditing = !!task?.id;
   const canEdit = userRole === 'admin' || (userRole === 'employee' && currentUser?.id === employeeId) || (!isEditing && userRole === 'employee' && !employeeId);
   const canDelete = userRole === 'admin' || (userRole === 'employee' && task?.created_by === currentUser?.id);
@@ -50,6 +50,8 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
     estimated_hours: task?.estimated_hours !== undefined && task?.estimated_hours !== null ? task.estimated_hours : 1.00,
     department_id: task?.department_id || currentUser?.department_id,
     attachments: task?.attachments || [],
+    project_id: task?.project_id || '', // Add project_id field
+    addToMeistertask: !!task?.project_id, // Add addToMeistertask field
     // For admins creating new tasks, use the selected date at midnight; for editing or non-admins, use the task's created_at
     created_at: task?.created_at ? getLocalDateTimeString(new Date(task.created_at)) : (isAdmin && !isEditing ? getDateTimeForSelectedDate(date) : getLocalDateTimeString())
   });
@@ -81,6 +83,8 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
         estimated_hours: task.estimated_hours !== undefined && task.estimated_hours !== null ? task.estimated_hours : 1.00,
         department_id: task.department_id || currentUser?.department_id,
         attachments: task.attachments || [],
+        project_id: task.project_id || '', // Add project_id field
+        addToMeistertask: !!task?.project_id, // Add addToMeistertask field
         // For admins editing tasks, use the task's created_at; for new tasks, use selected date at midnight
         created_at: task.created_at ? getLocalDateTimeString(new Date(task.created_at)) : (isAdmin && !isEditing ? getDateTimeForSelectedDate(date) : getLocalDateTimeString())
       });
@@ -231,6 +235,11 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
         ...formData,
         estimated_hours: formData.estimated_hours !== undefined && formData.estimated_hours !== null && formData.estimated_hours !== '' ? parseFloat(formData.estimated_hours) : 1.00 // Ensure proper float conversion
       };
+    
+      // If addToMeistertask is false, remove project_id
+      if (!formData.addToMeistertask) {
+        delete taskData.project_id;
+      }
     
       // For admin, allow assignment to any employee or no assignment (backend will handle)
       // For employee, keep current behavior
@@ -469,35 +478,72 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
               {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
             </div>
 
-            <div>
-              <label htmlFor="assigned_to" className="block text-sm font-medium text-gray-700 mb-1">Assigned To</label>
-              {isAdmin ? (
-                <select
-                  id="assigned_to"
-                  name="assigned_to"
-                  value={formData.assigned_to || ''}
-                  onChange={handleChange}
-                  disabled={!canEdit || isUploading}
-                  className={`w-full p-2 border rounded-md ${errors.assigned_to ? 'border-red-500' : 'border-gray-300'} ${!canEdit || isUploading ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                >
-                  <option value="">Unassigned</option>
-                  {employees.map(employee => (
-                    <option key={employee.id} value={employee.id}>
-                      {employee.name} ({employee.position})
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  type="text"
-                  id="assigned_to"
-                  name="assigned_to"
-                  value={employees.find(emp => emp.id === formData.assigned_to)?.name || 'Self'}
-                  disabled
-                  className="w-full p-2 border rounded-md border-gray-300 bg-gray-100 cursor-not-allowed"
-                />
-              )}
-              {errors.assigned_to && <p className="text-red-500 text-xs mt-1">{errors.assigned_to}</p>}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="assigned_to" className="block text-sm font-medium text-gray-700 mb-1">Assigned To</label>
+                {isAdmin ? (
+                  <select
+                    id="assigned_to"
+                    name="assigned_to"
+                    value={formData.assigned_to || ''}
+                    onChange={handleChange}
+                    disabled={!canEdit || isUploading}
+                    className={`w-full p-2 border rounded-md ${errors.assigned_to ? 'border-red-500' : 'border-gray-300'} ${!canEdit || isUploading ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                  >
+                    <option value="">Unassigned</option>
+                    {employees.map(employee => (
+                      <option key={employee.id} value={employee.id}>
+                        {employee.name} ({employee.position})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    id="assigned_to"
+                    name="assigned_to"
+                    value={employees.find(emp => emp.id === formData.assigned_to)?.name || 'Self'}
+                    disabled
+                    className="w-full p-2 border rounded-md border-gray-300 bg-gray-100 cursor-not-allowed"
+                  />
+                )}
+                {errors.assigned_to && <p className="text-red-500 text-xs mt-1">{errors.assigned_to}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="project_id" className="block text-sm font-medium text-gray-700 mb-1">
+                  Project
+                </label>
+                <div className="flex items-center">
+                  <input
+                    id="addToMeistertask"
+                    name="addToMeistertask"
+                    type="checkbox"
+                    checked={formData.addToMeistertask}
+                    onChange={handleChange}
+                    disabled={!canEdit || isUploading}
+                    className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 mr-2"
+                  />
+                  <label htmlFor="addToMeistertask" className="block text-sm text-gray-900 mr-2">
+                    Add to Meistertask
+                  </label>
+                  <select
+                    id="project_id"
+                    name="project_id"
+                    value={formData.project_id}
+                    onChange={handleChange}
+                    disabled={!canEdit || isUploading || !formData.addToMeistertask}
+                    className={`w-full p-2 border rounded-md ${errors.project_id ? 'border-red-500' : 'border-gray-300'} ${!canEdit || isUploading || !formData.addToMeistertask ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                  >
+                    <option value="">Select a project</option>
+                    {projects && projects.map(project => (
+                      <option key={project.id} value={project.id}>
+                        {project.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
 
             <div>

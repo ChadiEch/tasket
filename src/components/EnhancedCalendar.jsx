@@ -3,9 +3,1119 @@ import { useApp } from '../context/AppContext'
 import TaskDetail from './tasks/TaskDetail'
 import DeleteConfirmationDialog from './tasks/DeleteConfirmationDialog'
 import { tasksAPI } from '../lib/api' // Import tasksAPI for file uploads
+import TaskForm from './tasks/TaskForm' // Add TaskForm import
 
 const EnhancedCalendar = ({ view: propView }) => {
-  const { tasks, navigateToDayView, selectedEmployee, navigateToCalendar, currentUser, isAdmin, deleteTask, updateTask, createTask, updateTaskStatus } = useApp()
+  const { tasks, navigateToDayView, selectedEmployee, navigateToCalendar, currentUser, isAdmin, deleteTask, updateTask, createTask, updateTaskStatus, projects } = useApp()
+  const [currentDate, setCurrentDate] = useState(new Date())
+  const [view, setView] = useState('year') // 'year' or 'days'
+  const [isMyTasksMode, setIsMyTasksMode] = useState(propView === 'my-tasks') // Whether we're filtering by current user
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
+  const [viewingTask, setViewingTask] = useState(null)
+  const [taskToView, setTaskToView] = useState(null) // For opening a specific task
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [taskToDelete, setTaskToDelete] = useState(null)
+  const [draggedTask, setDraggedTask] = useState(null) // State for dragged task
+  const [dropTarget, setDropTarget] = useState(null) // State for drop target
+  
+  // State for todo list with localStorage persistence per user
+  const [todoList, setTodoList] = useState(() => {
+    const savedTodos = localStorage.getItem(`calendarTodos_${currentUser?.id || 'guest'}`);
+    return savedTodos ? JSON.parse(savedTodos) : [
+      { id: 'todo1', title: 'Review project documentation', description: '', completed: false, assignedDate: null, priority: 'medium', estimated_hours: 1.00, attachments: [] },
+      { id: 'todo2', title: 'Prepare meeting agenda', description: '', completed: false, assignedDate: null, priority: 'high', estimated_hours: 0.50, attachments: [] },
+      { id: 'todo3', title: 'Update team progress report', description: '', completed: false, assignedDate: null, priority: 'medium', estimated_hours: 2.00, attachments: [] }
+    ];
+  });
+  const [newTodo, setNewTodo] = useState({
+    title: '',
+    description: '',
+    priority: 'medium',
+    estimated_hours: 1.00,
+    attachments: []
+  });
+  const [showTodoForm, setShowTodoForm] = useState(false);
+  const [dragAction, setDragAction] = useState('move'); // 'copy' or 'move'
+
+  // Task form state
+  const [showTaskForm, setShowTaskForm] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
+
+  const today = new Date();
+
+  // Save todo list to localStorage whenever it changes, scoped to current user
+  useEffect(() => {
+    localStorage.setItem(`calendarTodos_${currentUser?.id || 'guest'}`, JSON.stringify(todoList));
+  }, [todoList, currentUser?.id]);
+
+  // Check if there's a task to view when component mounts or when tasks change
+  useEffect(() => {
+    if (taskToView) {
+      // Add a small delay to ensure tasks are loaded
+      const timer = setTimeout(() => {
+        const task = tasks.find(t => t.id === taskToView);
+        if (task) {
+          setViewingTask(task);
+        } else {
+          console.warn(`Task with ID ${taskToView} not found`);
+        }
+        setTaskToView(null); // Clear it after processing
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [taskToView, tasks]);
+
+  // Set my tasks mode based on prop
+  useEffect(() => {
+    setIsMyTasksMode(propView === 'my-tasks');
+  }, [propView]);
+
+  // Generate years for selection (10 years before and after current year)
+  const generateYears = () => {
+    const currentYear = new Date().getFullYear()
+    const years = []
+    for (let i = currentYear - 10; i <= currentYear + 10; i++) {
+      years.push(i)
+    }
+    return years
+  }
+
+  // Generate months for selection
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ]
+
+  // Check if a date has tasks for the selected employee
+  const hasTasksOnDate = (year, month, day) => {
+    const targetDate = new Date(year, month, day)
+    const yearStr = targetDate.getFullYear()
+    const monthStr = String(targetDate.getMonth() + 1).padStart(2, '0')
+    const dayStr = String(targetDate.getDate()).padStart(2, '0')
+    const targetDateStr = `${yearStr}-${monthStr}-${dayStr}`
+
+    // Filter tasks by created_at date instead of due_date
+    let filteredTasks = tasks.filter(task => {
+      if (!task.created_at) return false
+      
+      let taskDateStr
+      try {
+        // Parse the date with timezone awareness
+        const taskCreatedDate = new Date(task.created_at)
+        
+        // Extract date part using local time (this handles timezone conversion properly)
+        const taskYear = taskCreatedDate.getFullYear()
+        const taskMonth = String(taskCreatedDate.getMonth() + 1).padStart(2, '0')
+        const taskDay = String(taskCreatedDate.getDate()).padStart(2, '0')
+        taskDateStr = `${taskYear}-${taskMonth}-${taskDay}`
+        
+        return taskDateStr === targetDateStr
+      } catch (error) {
+        return false
+      }
+    })
+    
+    // If there's a selected employee, filter tasks to show only those assigned to the selected employee
+    // For "My Tasks" view, filter by current user
+    if (selectedEmployee) {
+      filteredTasks = filteredTasks.filter(task => task.assigned_to === selectedEmployee.id)
+    } else if (isMyTasksMode) {
+      // Filter by current user for "My Tasks" view
+      filteredTasks = filteredTasks.filter(task => task.assigned_to === currentUser?.id)
+    }
+    
+    return filteredTasks.length > 0
+  }
+
+  // Generate calendar days for a specific month
+  const generateCalendarDays = (year, month) => {
+    const firstDayOfMonth = new Date(year, month, 1)
+    const lastDayOfMonth = new Date(year, month + 1, 0)
+    const firstDayWeekday = firstDayOfMonth.getDay()
+    const daysInMonth = lastDayOfMonth.getDate()
+
+    const calendarDays = []
+    
+    // Add empty cells for days before month starts
+    for (let i = 0; i < firstDayWeekday; i++) {
+      calendarDays.push(null)
+    }
+    
+    // Add days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      calendarDays.push(day)
+    }
+    
+    return calendarDays
+  }
+
+  const getTasksForDay = (day) => {
+    if (!day || view !== 'days') return []
+    
+    // Create date for the specific day using local timezone
+    const targetDate = new Date(selectedYear, selectedMonth, day)
+    const year = targetDate.getFullYear()
+    const month = String(targetDate.getMonth() + 1).padStart(2, '0')
+    const dayStr = String(targetDate.getDate()).padStart(2, '0')
+    const targetDateStr = `${year}-${month}-${dayStr}`
+    
+    // Filter tasks by created_at date instead of due_date
+    let filteredTasks = tasks.filter(task => {
+      if (!task.created_at) return false
+      
+      // Handle different date formats and ensure proper comparison
+      let taskDateStr
+      try {
+        // Parse the date with timezone awareness
+        const taskCreatedDate = new Date(task.created_at)
+        
+        // Extract date part using local time to match how dates are displayed in the UI
+        const taskYear = taskCreatedDate.getFullYear()
+        const taskMonth = String(taskCreatedDate.getMonth() + 1).padStart(2, '0')
+        const taskDay = String(taskCreatedDate.getDate()).padStart(2, '0')
+        taskDateStr = `${taskYear}-${taskMonth}-${taskDay}`
+        
+        return taskDateStr === targetDateStr
+      } catch (error) {
+        console.warn('Date parsing error for task:', task.id, task.created_at)
+        return false
+      }
+    })
+    
+    // If there's a selected employee, filter tasks to show only those assigned to the selected employee
+    // For "My Tasks" view, filter by current user
+    if (selectedEmployee) {
+      filteredTasks = filteredTasks.filter(task => task.assigned_to === selectedEmployee.id)
+    } else if (isMyTasksMode) {
+      // Filter by current user for "My Tasks" view
+      filteredTasks = filteredTasks.filter(task => task.assigned_to === currentUser?.id)
+    }
+    
+    return filteredTasks
+  }
+
+  const handleYearSelect = (year) => {
+    setSelectedYear(year)
+    // Keep view as 'year' to show all months on the same page
+  }
+
+  const handleMonthSelect = (monthIndex) => {
+    setSelectedMonth(monthIndex)
+    setView('days')
+  }
+
+  const handleDayClick = (day) => {
+    if (!day) return
+    const selectedDate = new Date(selectedYear, selectedMonth, day)
+    navigateToDayView(selectedDate)
+  }
+
+  // Handle day click in year view
+  const handleYearViewDayClick = (year, month, day) => {
+    console.log('handleYearViewDayClick called with:', year, month, day);
+    if (!day) {
+      console.log('Day is null or undefined, returning');
+      return;
+    }
+    // Validate inputs
+    if (typeof year !== 'number' || typeof month !== 'number' || typeof day !== 'number') {
+      console.log('Invalid input types:', { year, month, day });
+      return;
+    }
+    console.log('Creating date with year:', year, 'month:', month, 'day:', day);
+    const selectedDate = new Date(year, month, day);
+    console.log('Selected date created:', selectedDate);
+    // Check if date is valid
+    if (isNaN(selectedDate.getTime())) {
+      console.log('Invalid date created');
+      return;
+    }
+    console.log('Calling navigateToDayView with selectedDate');
+    navigateToDayView(selectedDate);
+    console.log('navigateToDayView called');
+  }
+
+  // Handle month click in year view (navigate to month view)
+  const handleYearViewMonthClick = (monthIndex) => {
+    setSelectedMonth(monthIndex)
+    setView('days')
+  }
+
+  const navigateToToday = () => {
+    const now = new Date()
+    setSelectedYear(now.getFullYear())
+    setSelectedMonth(now.getMonth())
+    setCurrentDate(now)
+    setView('days')
+  }
+
+  const goBack = () => {
+    if (view === 'days') {
+      setView('year');
+    }
+    // Keep selectedEmployee context when going back
+  };
+
+  const navigateToAllEmployeesCalendar = () => {
+    // Navigate to calendar view but keep the selected employee context
+    navigateToCalendar();
+    // Also exit my tasks mode when navigating to all employees
+    setIsMyTasksMode(false);
+  };
+
+  const openTaskView = (task) => {
+    setViewingTask(task)
+  }
+
+  const closeTaskView = () => {
+    setViewingTask(null)
+  }
+
+  const openTaskById = (taskId) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (task) {
+      setViewingTask(task);
+    }
+  }
+
+  const openAttachment = (attachment) => {
+    if (attachment.type === 'link') {
+      window.open(attachment.url, '_blank')
+    } else {
+      // For documents and photos, open in a new tab
+      window.open(attachment.url, '_blank')
+    }
+  }
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-100 text-green-800'
+      case 'in-progress':
+        return 'bg-amber-100 text-amber-800'
+      case 'planned':
+        return 'bg-blue-100 text-blue-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'low':
+        return 'bg-green-500'
+      case 'medium':
+        return 'bg-yellow-500'
+      case 'high':
+        return 'bg-orange-500'
+      case 'urgent':
+        return 'bg-red-500'
+      default:
+        return 'bg-gray-500'
+    }
+  }
+
+  const handleTaskDelete = async (task) => {
+    setTaskToDelete(task)
+    setShowDeleteDialog(true)
+  }
+
+  const handleDeleteConfirm = async (action) => {
+    setShowDeleteDialog(false);
+    if (!taskToDelete) return;
+    
+    try {
+      await deleteTask(taskToDelete.id, action);
+      
+      // If task was deleted, remove it from todo list assigned dates
+      setTodoList(prev => prev.map(todo => {
+        if (todo.assignedDate) {
+          // Check if this todo is assigned to the deleted task's date
+          const taskDate = new Date(taskToDelete.created_at);
+          const todoDate = new Date(todo.assignedDate);
+          
+          if (taskDate.toDateString() === todoDate.toDateString() && 
+              todo.title === taskToDelete.title) {
+            return { ...todo, assignedDate: null };
+          }
+        }
+        return todo;
+      }));
+      
+      // Close task detail if it's open for the deleted task
+      if (viewingTask && viewingTask.id === taskToDelete.id) {
+        setViewingTask(null);
+      }
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      alert('Failed to delete task');
+    } finally {
+      setTaskToDelete(null);
+    }
+  };
+
+  // Function to open a task by ID (to be called from other components)
+  const openTaskFromNotification = (taskId) => {
+    if (!taskId) {
+      console.warn('No task ID provided to openTaskFromNotification');
+      return;
+    }
+    setTaskToView(taskId);
+  }
+
+  // Handle drag start with touch support for mobile
+  const handleDragStart = (e, task) => {
+    if (!isAdmin) return;
+    // Include source information to distinguish between tasks and todos
+    e.dataTransfer.setData('text/plain', JSON.stringify({ ...task, source: 'task' }));
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggedTask(task);
+    // Set drag image to improve UX
+    const dragImage = document.createElement('div');
+    dragImage.style.position = 'absolute';
+    dragImage.style.top = '-1000px';
+    dragImage.textContent = task.title;
+    dragImage.className = 'bg-blue-500 text-white px-2 py-1 rounded text-sm';
+    document.body.appendChild(dragImage);
+    e.dataTransfer.setDragImage(dragImage, 0, 0);
+    setTimeout(() => document.body.removeChild(dragImage), 0);
+  };
+
+  // Touch event handlers for mobile drag support
+  const handleTouchStart = (e, item, source) => {
+    if (!isAdmin) return;
+    
+    // Store touch start time
+    e.currentTarget.touchStartTime = Date.now();
+    e.currentTarget.touchStartY = e.touches[0].clientY;
+    
+    // Add visual feedback
+    e.currentTarget.classList.add('touch-active');
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isAdmin || !e.currentTarget.touchStartTime) return;
+    
+    // Prevent scrolling if we're in a drag operation
+    const deltaY = Math.abs(e.touches[0].clientY - e.currentTarget.touchStartY);
+    if (deltaY > 10) {
+      // User is scrolling, not dragging
+      e.currentTarget.classList.remove('touch-active');
+      delete e.currentTarget.touchStartTime;
+    }
+  };
+
+  const handleTouchEnd = (e, item, source) => {
+    if (!isAdmin || !e.currentTarget.touchStartTime) return;
+    
+    // Calculate touch duration
+    const touchDuration = Date.now() - e.currentTarget.touchStartTime;
+    
+    // If long press (500ms+), simulate drag start
+    if (touchDuration >= 500) {
+      // Create drag data
+      const dragData = JSON.stringify({ ...item, source });
+      
+      // Create a custom drag event
+      const customEvent = {
+        dataTransfer: {
+          setData: (type, data) => {
+            customEvent.dataTransfer.data = data;
+          },
+          getData: () => customEvent.dataTransfer.data || dragData
+        },
+        preventDefault: () => {}
+      };
+      
+      // Trigger appropriate drag start handler
+      if (source === 'todo') {
+        handleTodoDragStart(customEvent, item);
+      } else {
+        handleDragStart(customEvent, item);
+      }
+      
+      // Visual feedback
+      e.currentTarget.classList.add('dragging');
+      setTimeout(() => {
+        e.currentTarget.classList.remove('dragging');
+      }, 1000);
+    }
+    
+    // Clean up
+    e.currentTarget.classList.remove('touch-active');
+    delete e.currentTarget.touchStartTime;
+    delete e.currentTarget.touchStartY;
+  };
+
+  // Mobile touch handling for drag simulation
+  const initMobileDrag = (e, item, source) => {
+    if (!isAdmin) return;
+    
+    // Prevent default behavior
+    e.preventDefault();
+    
+    // Store the dragged item
+    setDraggedTask({ ...item, source });
+    
+    // Create a visual drag feedback element
+    const dragFeedback = document.createElement('div');
+    dragFeedback.id = 'mobile-drag-feedback';
+    dragFeedback.textContent = item.title;
+    dragFeedback.className = 'fixed bg-blue-500 text-white px-3 py-2 rounded-lg text-sm z-50 shadow-lg pointer-events-none';
+    dragFeedback.style.left = `${e.touches[0].clientX}px`;
+    dragFeedback.style.top = `${e.touches[0].clientY}px`;
+    document.body.appendChild(dragFeedback);
+    
+    // Store initial touch position
+    const startX = e.touches[0].clientX;
+    const startY = e.touches[0].clientY;
+    
+    // Add visual feedback to the source element
+    e.currentTarget.classList.add('opacity-50');
+    
+    // Track touch movement
+    const handleTouchMove = (moveEvent) => {
+      moveEvent.preventDefault();
+      
+      // Update drag feedback position
+      const currentTouch = moveEvent.touches[0];
+      dragFeedback.style.left = `${currentTouch.clientX}px`;
+      dragFeedback.style.top = `${currentTouch.clientY}px`;
+      
+      // Check if we're over a calendar day
+      const elementUnderTouch = document.elementFromPoint(currentTouch.clientX, currentTouch.clientY);
+      if (elementUnderTouch && elementUnderTouch.classList.contains('calendar-day-cell') && elementUnderTouch.dataset.day) {
+        const day = parseInt(elementUnderTouch.dataset.day);
+        if (day && day !== dropTarget) {
+          // Update drop target
+          setDropTarget(day);
+          
+          // Highlight the day cell
+          document.querySelectorAll('.calendar-day-cell').forEach(cell => {
+            cell.classList.remove('bg-blue-100', 'border-blue-400', 'ring-2', 'ring-blue-200');
+          });
+          elementUnderTouch.classList.add('bg-blue-100', 'border-blue-400', 'ring-2', 'ring-blue-200');
+        }
+      }
+    };
+    
+    // Handle touch end
+    const handleTouchEnd = (endEvent) => {
+      // Clean up
+      e.currentTarget.classList.remove('opacity-50');
+      if (document.getElementById('mobile-drag-feedback')) {
+        document.body.removeChild(dragFeedback);
+      }
+      document.querySelectorAll('.calendar-day-cell').forEach(cell => {
+        cell.classList.remove('bg-blue-100', 'border-blue-400', 'ring-2', 'ring-blue-200');
+      });
+      
+      // Remove listeners
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+      
+      // Check if we dropped on a valid calendar day
+      const endTouch = endEvent.changedTouches[0];
+      const elementUnderTouch = document.elementFromPoint(endTouch.clientX, endTouch.clientY);
+      
+      if (elementUnderTouch && elementUnderTouch.classList.contains('calendar-day-cell') && elementUnderTouch.dataset.day) {
+        // Simulate drop
+        const day = parseInt(elementUnderTouch.dataset.day);
+        if (day) {
+          // Create a simulated drop event
+          const simulatedEvent = {
+            preventDefault: () => {},
+            dataTransfer: {
+              getData: () => JSON.stringify({ ...item, source })
+            }
+          };
+          handleDrop(simulatedEvent, day);
+        }
+      }
+      
+      // Reset drag state
+      setDraggedTask(null);
+      setDropTarget(null);
+    };
+    
+    // Add listeners
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd);
+  };
+
+  // Handle drag end
+  const handleDragEnd = () => {
+    setDraggedTask(null);
+    setDropTarget(null);
+  };
+
+  // Handle drag over with mobile support
+  const handleDragOver = (e, day) => {
+    if (!isAdmin || !day) return;
+    e.preventDefault();
+    
+    // Check what type of item is being dragged
+    const data = e.dataTransfer.getData('text/plain');
+    if (data) {
+      try {
+        const parsedData = JSON.parse(data);
+        if (parsedData.source === 'task') {
+          // Moving a task between days
+          e.dataTransfer.dropEffect = 'move';
+        } else if (parsedData.source === 'todo') {
+          // Moving a todo to a day
+          e.dataTransfer.dropEffect = dragAction === 'copy' ? 'copy' : 'move';
+        }
+      } catch (error) {
+        // Not a valid JSON, default to move
+        e.dataTransfer.dropEffect = 'move';
+      }
+    } else {
+      // Default to move for tasks
+      e.dataTransfer.dropEffect = 'move';
+    }
+    
+    setDropTarget(day);
+  };
+
+  // Handle drag leave
+  const handleDragLeave = (e) => {
+    // Only clear drop target if we're leaving the calendar day cell
+    if (e.target.classList.contains('calendar-day-cell')) {
+      setDropTarget(null);
+    }
+  };
+
+  // Handle drop on calendar day (updated to handle both tasks and todos)
+  const handleDrop = async (e, day) => {
+    e.preventDefault();
+    if (!isAdmin || !day) return;
+    
+    const data = e.dataTransfer.getData('text/plain');
+    if (!data) return;
+    
+    try {
+      const parsedData = JSON.parse(data);
+      
+      // Log what we're dropping
+      console.log('Dropping item:', parsedData);
+      console.log('Current drag action:', dragAction);
+      
+      // Check what type of item is being dropped
+      if (parsedData.source === 'task') {
+        // Moving a task from one day to another
+        await moveTaskToDay(parsedData, day);
+      } else if (parsedData.source === 'todo') {
+        // Moving a todo to a calendar day (convert to task)
+        console.log('Converting todo to task with drag action:', dragAction);
+        await convertTodoToTask(parsedData, day);
+      }
+    } catch (error) {
+      console.error('Error handling drop:', error);
+      alert(`Failed to handle drop: ${error.message}`);
+    } finally {
+      setDraggedTask(null);
+      setDropTarget(null);
+    }
+  };
+
+  // Function to move a task to a new day
+  const moveTaskToDay = async (taskData, day) => {
+    // Create a date string for the target day (this ensures we keep the correct calendar day)
+    const year = selectedYear;
+    const month = String(selectedMonth + 1).padStart(2, '0'); // Months are 0-indexed
+    const dayStr = String(day).padStart(2, '0');
+    const targetDateStr = `${year}-${month}-${dayStr}`;
+    
+    // Create the date string for the backend in a way that preserves the calendar day
+    // We'll create a date at noon to avoid timezone conversion issues
+    const targetDate = new Date(selectedYear, selectedMonth, day, 12, 0, 0);
+    const formattedDate = targetDate.toISOString();
+    
+    console.log('Moving task:', taskData.id);
+    console.log('Target date string:', targetDateStr);
+    console.log('Target date (noon):', targetDate);
+    console.log('Formatted date for backend:', formattedDate);
+    
+    try {
+      // Use the regular updateTask function but send only the created_at field
+      const updatedTaskData = {
+        created_at: formattedDate
+      };
+      
+      const result = await updateTask(taskData.id, updatedTaskData);
+      
+      console.log('Update task result:', result);
+      
+      if (result.error) {
+        console.error('Error updating task:', result.error);
+        // Show a more user-friendly error message
+        alert(`Failed to move task: ${result.error}`);
+      } else {
+        console.log('Task moved successfully:', result.task);
+        // Log the new created_at value
+        console.log('New created_at value:', result.task.created_at);
+        // Show success message
+        console.log('Task moved successfully!');
+      }
+    } catch (error) {
+      console.error('Error moving task:', error);
+      alert(`Failed to move task: ${error.message}`);
+    }
+  };
+
+  // Function to copy a todo item to a specific day as a new task
+  const copyTodoToDay = async (todoData, day) => {
+    // Create the target date for the new task
+    const targetDate = new Date(selectedYear, selectedMonth, day, 12, 0, 0);
+    const formattedDate = targetDate.toISOString();
+    
+    try {
+      console.log('Copying todo to day:', { todoData, day, targetDate });
+      
+      // Process attachments for the new task
+      const processedAttachments = await processTodoAttachments(todoData.attachments);
+      
+      // Create a new task based on the todo item
+      const newTaskData = {
+        title: todoData.title,
+        description: todoData.description || 'Task created from todo list',
+        created_at: formattedDate,
+        due_date: formattedDate,
+        priority: todoData.priority || 'medium',
+        status: 'planned',
+        assigned_to: currentUser?.id || null,
+        estimated_hours: todoData.estimated_hours || 1.00,
+        attachments: processedAttachments
+      };
+      
+      // Create the task
+      const result = await createTask(newTaskData);
+      
+      if (result.error) {
+        console.error('Error creating task from todo:', result.error);
+        throw new Error(result.error);
+      }
+      
+      console.log('Task created successfully from todo:', result.task);
+      
+      // For copy operation, we don't modify the original todo list
+      // The original todo should remain unchanged
+      console.log('Todo item copied successfully - original todo unchanged');
+      
+      return result.task;
+    } catch (error) {
+      console.error('Error copying todo to day:', error);
+      throw error;
+    }
+  };
+
+  // Function to move a todo item to a specific day as a new task
+  const moveTodoToDay = async (todoData, day) => {
+    // Create the target date for the new task
+    const targetDate = new Date(selectedYear, selectedMonth, day, 12, 0, 0);
+    const formattedDate = targetDate.toISOString();
+    
+    try {
+      console.log('Moving todo to day:', { todoData, day, targetDate });
+      
+      // Process attachments for the new task
+      const processedAttachments = await processTodoAttachments(todoData.attachments);
+      
+      // Create a new task based on the todo item
+      const newTaskData = {
+        title: todoData.title,
+        description: todoData.description || 'Task created from todo list',
+        created_at: formattedDate,
+        due_date: formattedDate,
+        priority: todoData.priority || 'medium',
+        status: 'planned',
+        assigned_to: currentUser?.id || null,
+        estimated_hours: todoData.estimated_hours || 1.00,
+        attachments: processedAttachments
+      };
+      
+      // Create the task
+      const result = await createTask(newTaskData);
+      
+      if (result.error) {
+        console.error('Error creating task from todo:', result.error);
+        throw new Error(result.error);
+      }
+      
+      console.log('Task created successfully from todo:', result.task);
+      
+      // For move operation, remove the original todo from the list
+      setTodoList(prev => prev.filter(t => t.id !== todoData.id));
+      console.log('Todo item moved successfully - original todo removed');
+      
+      return result.task;
+    } catch (error) {
+      console.error('Error moving todo to day:', error);
+      throw error;
+    }
+  };
+
+  // Helper function to process todo attachments
+  const processTodoAttachments = async (attachments = []) => {
+    if (!Array.isArray(attachments) || attachments.length === 0) {
+      return [];
+    }
+    
+    console.log('Processing todo attachments:', attachments);
+    
+    // Separate attachments by type
+    const filesToUpload = [];
+    const existingAttachments = [];
+    
+    for (const attachment of attachments) {
+      // Check if this is a file that needs to be uploaded
+      if (attachment.file && typeof attachment.file === 'object' && attachment.file instanceof File) {
+        filesToUpload.push(attachment);
+      } else if (attachment.url) {
+        // This is an already uploaded attachment or a link
+        existingAttachments.push(attachment);
+      }
+    }
+    
+    console.log('Files to upload:', filesToUpload);
+    console.log('Existing attachments:', existingAttachments);
+    
+    // Upload all files
+    const uploadedAttachments = [];
+    for (let i = 0; i < filesToUpload.length; i++) {
+      const fileAttachment = filesToUpload[i];
+      
+      try {
+        console.log('Uploading file:', fileAttachment.name);
+        const result = await tasksAPI.uploadFile(fileAttachment.file);
+        console.log('File uploaded successfully:', result);
+        
+        // Extract the uploaded file URL from the task attachments
+        if (result.task && result.task.attachments && Array.isArray(result.task.attachments) && result.task.attachments.length > 0) {
+          // Find the attachment that matches our uploaded file
+          const uploadedAttachment = result.task.attachments.find(attachment => 
+            attachment.name === fileAttachment.name
+          ) || result.task.attachments[0]; // Fallback to first attachment
+          
+          if (uploadedAttachment && uploadedAttachment.url) {
+            console.log('Successfully uploaded file URL:', uploadedAttachment.url);
+            uploadedAttachments.push({
+              id: fileAttachment.id,
+              type: fileAttachment.type,
+              url: uploadedAttachment.url,
+              name: fileAttachment.name,
+              size: fileAttachment.size
+            });
+          } else {
+            console.error('Uploaded attachment missing URL:', uploadedAttachment);
+            throw new Error('Uploaded file missing URL');
+          }
+        } else {
+          console.error('Invalid response structure:', result);
+          throw new Error('Invalid response from server: missing attachments');
+        }
+      } catch (uploadError) {
+        console.error('Error uploading file:', uploadError);
+        throw new Error(`Failed to upload file "${fileAttachment.name}": ${uploadError.message || 'Unknown error'}`);
+      }
+    }
+    
+    // Combine all attachments
+    const allAttachments = [...uploadedAttachments, ...existingAttachments];
+    console.log('All processed attachments:', allAttachments);
+    
+    return allAttachments;
+  };
+
+  // Function to convert a todo to a task on a specific day (main entry point)
+  const convertTodoToTask = async (todoData, day) => {
+    try {
+      // Check the current drag action to determine copy or move behavior
+      if (dragAction === 'copy') {
+        return await copyTodoToDay(todoData, day);
+      } else {
+        return await moveTodoToDay(todoData, day);
+      }
+    } catch (error) {
+      console.error('Error converting todo to task:', error);
+      alert(`Failed to convert todo to task: ${error.message || 'Please try again.'}`);
+      throw error;
+    }
+  };
+
+  // Handle todo list drag start
+  const handleTodoDragStart = (e, todo) => {
+    // Log the todo data being dragged
+    console.log('Dragging todo item:', todo);
+    console.log('Todo attachments:', todo.attachments);
+    e.dataTransfer.setData('text/plain', JSON.stringify({ ...todo, source: 'todo' }));
+    e.dataTransfer.effectAllowed = dragAction === 'copy' ? 'copy' : 'move';
+  };
+
+  // Handle file upload for todo attachments
+  const handleTodoFileUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+    
+    // Create attachment objects for each file
+    const fileAttachments = files.map((file, index) => {
+      let type = 'document'; // Default type
+      if (file.type.startsWith('image/')) {
+        type = 'photo';
+      } else if (file.type.startsWith('video/')) {
+        type = 'video';
+      }
+      
+      return {
+        id: Date.now() + index,
+        type: type,
+        file: file,
+        name: file.name,
+        size: file.size,
+        url: URL.createObjectURL(file) // For preview only
+      };
+    });
+    
+    // Add to newTodo attachments
+    setNewTodo(prev => ({
+      ...prev,
+      attachments: [...prev.attachments, ...fileAttachments]
+    }));
+  };
+
+  // Toggle todo completion status
+  const toggleTodoCompletion = async (id) => {
+    setTodoList(prev => {
+      return prev.map(todo => {
+        if (todo.id === id) {
+          const updatedTodo = { ...todo, completed: !todo.completed };
+          
+          // If todo is marked as completed and it's assigned to a date, 
+          // we should also mark the corresponding task as completed
+          if (updatedTodo.completed && updatedTodo.assignedDate) {
+            // Find the task in the tasks list that matches this todo
+            const correspondingTask = tasks.find(task => 
+              task.title === updatedTodo.title && 
+              new Date(task.created_at).toDateString() === new Date(updatedTodo.assignedDate).toDateString() &&
+              task.assigned_to === currentUser?.id
+            );
+            
+            if (correspondingTask) {
+              // Update the task status to completed
+              updateTaskStatus(correspondingTask.id, 'completed');
+            }
+          }
+          
+          return updatedTodo;
+        }
+        return todo;
+      });
+    });
+  };
+
+  // Handle new todo form changes
+  const handleTodoFormChange = (e) => {
+    const { name, value } = e.target;
+    setNewTodo(prev => ({
+      ...prev,
+      [name]: name === 'estimated_hours' ? parseFloat(value) || 0 : value
+    }));
+  };
+
+  // Handle attachment changes for new todo
+  const handleTodoAttachmentChange = (e) => {
+    const { name, value } = e.target;
+    setNewTodo(prev => {
+      const attachments = prev.attachments && prev.attachments.length > 0 
+        ? [...prev.attachments] 
+        : [{ id: Date.now(), type: 'link', url: '', name: '' }];
+      
+      attachments[0] = { ...attachments[0], [name]: value };
+      
+      return {
+        ...prev,
+        attachments
+      };
+    });
+  };
+
+  // Add attachment to new todo
+  const addTodoAttachment = () => {
+    if (newTodo.attachments && newTodo.attachments.length > 0 && newTodo.attachments[0].url) {
+      const newAttachment = {
+        id: Date.now(),
+        type: 'link',
+        url: newTodo.attachments[0].url,
+        name: newTodo.attachments[0].name || newTodo.attachments[0].url
+      };
+      setNewTodo(prev => ({
+        ...prev,
+        attachments: [newAttachment]
+      }));
+    }
+  };
+
+  // Remove attachment from new todo
+  const removeTodoAttachment = (id) => {
+    setNewTodo(prev => {
+      const attachments = prev.attachments.filter(attachment => attachment.id !== id);
+      return { ...prev, attachments };
+    });
+  };
+
+  // Add new todo item with file uploads
+  const addNewTodo = async () => {
+    if (newTodo.title.trim() === '') return;
+    
+    try {
+      console.log('Adding new todo with attachments:', newTodo);
+      
+      // Upload any file attachments to Cloudflare R2
+      const attachmentsWithUrls = [];
+      const filesToUpload = [];
+      const linkAttachments = [];
+      
+      for (const attachment of newTodo.attachments) {
+        if (attachment.file) {
+          // This is a file that needs to be uploaded
+          filesToUpload.push(attachment);
+        } else if (attachment.type === 'link' && attachment.url) {
+          // This is a link attachment
+          linkAttachments.push(attachment);
+        }
+      }
+      
+      console.log('Files to upload:', filesToUpload.length);
+      console.log('Link attachments:', linkAttachments.length);
+      
+      // Upload all files
+      const uploadedAttachments = [];
+      for (let i = 0; i < filesToUpload.length; i++) {
+        const fileAttachment = filesToUpload[i];
+        
+        try {
+          console.log('Uploading file:', fileAttachment.name);
+          const result = await tasksAPI.uploadFile(fileAttachment.file);
+          console.log('File uploaded successfully:', result);
+          
+          // Extract the uploaded file URL from the task attachments
+          if (result.task && result.task.attachments && Array.isArray(result.task.attachments) && result.task.attachments.length > 0) {
+            // Find the attachment that matches our uploaded file
+            const uploadedAttachment = result.task.attachments.find(attachment => 
+              attachment.name === fileAttachment.name
+            ) || result.task.attachments[0]; // Fallback to first attachment
+            
+            if (uploadedAttachment && uploadedAttachment.url) {
+              console.log('Successfully uploaded file URL:', uploadedAttachment.url);
+              uploadedAttachments.push({
+                id: fileAttachment.id,
+                type: fileAttachment.type,
+                url: uploadedAttachment.url,
+                name: fileAttachment.name,
+                size: fileAttachment.size
+              });
+            } else {
+              console.error('Uploaded attachment missing URL:', uploadedAttachment);
+              throw new Error('Uploaded file missing URL');
+            }
+          } else {
+            console.error('Invalid response structure:', result);
+            throw new Error('Invalid response from server: missing attachments');
+          }
+        } catch (uploadError) {
+          console.error('Error uploading file:', uploadError);
+          throw new Error(`Failed to upload file "${fileAttachment.name}": ${uploadError.message || 'Unknown error'}`);
+        }
+      }
+      
+      // Combine all attachments
+      const allAttachments = [...uploadedAttachments, ...linkAttachments];
+      console.log('All attachments:', allAttachments);
+      
+      const newTodoItem = {
+        id: `todo${Date.now()}`,
+        ...newTodo,
+        completed: false,
+        assignedDate: null,
+        attachments: allAttachments
+      };
+      
+      setTodoList(prev => [...prev, newTodoItem]);
+      setNewTodo({
+        title: '',
+        description: '',
+        priority: 'medium',
+        estimated_hours: 1.00,
+        attachments: []
+      });
+      setShowTodoForm(false);
+      
+      console.log('Todo added successfully');
+    } catch (error) {
+      console.error('Error adding todo with attachments:', error);
+      alert(`Failed to add todo with attachments: ${error.message || 'Please try again.'}`);
+    }
+  };
+
+  // Delete todo item
+  const deleteTodo = (id) => {
+    setTodoList(prev => prev.filter(todo => todo.id !== id));
+  };
+
+  // Handle drag action change
+  const handleDragActionChange = (action) => {
+    setDragAction(action);
+  };
+
+  // Handle task status change in calendar view
+  const handleTaskStatusChange = async (taskId, newStatus) => {
+    try {
+      const result = await updateTask(taskId, { status: newStatus });
+      
+      // If task is marked as completed, update corresponding todo item
+      if (newStatus === 'completed') {
+        const updatedTask = result.task;
+        if (updatedTask) {
+          setTodoList(prev => prev.map(todo => {
+            // Check if this todo corresponds to the completed task
+            if (todo.assignedDate && 
+                todo.title === updatedTask.title &&
+                new Date(todo.assignedDate).toDateString() === new Date(updatedTask.created_at).toDateString()) {
+              return { ...todo, completed: true };
+            }
+            return todo;
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Error updating task status:', error);
+    }
+  };
+
+  // Make this function available to other components through context or props
+  // For now, we'll just export it as a named export
+  window.openTaskFromNotification = openTaskFromNotification;
+
+  // Check if we're in "My Tasks" view
+  const isMyTasksView = isMyTasksMode;
+
+  return (
+    <div className="p-6">
+</original_code>```
+
+```
+import React, { useState, useEffect } from 'react'
+import { useApp } from '../context/AppContext'
+import TaskDetail from './tasks/TaskDetail'
+import DeleteConfirmationDialog from './tasks/DeleteConfirmationDialog'
+import { tasksAPI } from '../lib/api' // Import tasksAPI for file uploads
+import TaskForm from './tasks/TaskForm' // Add TaskForm import
+
+const EnhancedCalendar = ({ view: propView }) => {
+  const { tasks, navigateToDayView, selectedEmployee, navigateToCalendar, currentUser, isAdmin, deleteTask, updateTask, createTask, updateTaskStatus, projects } = useApp()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState('year') // 'year' or 'days'
   const [isMyTasksMode, setIsMyTasksMode] = useState(propView === 'my-tasks') // Whether we're filtering by current user
@@ -794,7 +1904,7 @@ const EnhancedCalendar = ({ view: propView }) => {
           const uploadedAttachment = result.task.attachments.find(attachment => 
             attachment.name === fileAttachment.name
           ) || result.task.attachments[0]; // Fallback to first attachment
-          
+            
           if (uploadedAttachment && uploadedAttachment.url) {
             console.log('Successfully uploaded file URL:', uploadedAttachment.url);
             uploadedAttachments.push({

@@ -14,7 +14,8 @@ const TaskForm = ({ task, onClose, project }) => {
     project_id: project?.id || '',
     due_date: '',
     attachments: [],
-    linkToCalendar: false
+    linkToCalendar: false,
+    addToMeistertask: true // Add this new field
   });
   
   const [errors, setErrors] = useState({});
@@ -40,12 +41,15 @@ const TaskForm = ({ task, onClose, project }) => {
         assigned_to: task.assigned_to || '',
         project_id: task.project_id || project?.id || '',
         due_date: task.due_date ? format(new Date(task.due_date), 'yyyy-MM-dd') : '',
-        attachments: task.attachments || []
+        attachments: task.attachments || [],
+        linkToCalendar: false,
+        addToMeistertask: !!task.project_id // Set based on existing project association
       });
     } else if (project) {
       setFormData(prev => ({
         ...prev,
-        project_id: project.id
+        project_id: project.id,
+        addToMeistertask: true
       }));
     }
   }, [task, project]);
@@ -62,10 +66,12 @@ const TaskForm = ({ task, onClose, project }) => {
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
+    const newValue = type === 'checkbox' ? checked : value;
+    
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: newValue
     }));
     
     // Clear error when user starts typing
@@ -123,8 +129,14 @@ const TaskForm = ({ task, onClose, project }) => {
         due_date: formData.due_date ? new Date(formData.due_date).toISOString() : null
       };
       
-      // Remove the linkToCalendar field as it's only for UI purposes
+      // Remove the linkToCalendar and addToMeistertask fields as they're only for UI purposes
       delete taskData.linkToCalendar;
+      delete taskData.addToMeistertask;
+      
+      // If addToMeistertask is false, remove project_id
+      if (!formData.addToMeistertask) {
+        delete taskData.project_id;
+      }
       
       // Remove file references from attachments before sending to backend
       const attachmentsWithoutFiles = taskData.attachments.map(att => {
@@ -250,20 +262,34 @@ const TaskForm = ({ task, onClose, project }) => {
                 <label htmlFor="project_id" className="block text-sm font-medium text-gray-700">
                   Project
                 </label>
-                <select
-                  id="project_id"
-                  name="project_id"
-                  value={formData.project_id}
-                  onChange={handleChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                >
-                  <option value="">No project</option>
-                  {projects.map((proj) => (
-                    <option key={proj.id} value={proj.id}>
-                      {proj.title}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex items-center">
+                  <input
+                    id="addToMeistertask"
+                    name="addToMeistertask"
+                    type="checkbox"
+                    checked={formData.addToMeistertask}
+                    onChange={handleChange}
+                    className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 mr-2"
+                  />
+                  <label htmlFor="addToMeistertask" className="block text-sm text-gray-900 mr-2">
+                    Add to Meistertask
+                  </label>
+                  <select
+                    id="project_id"
+                    name="project_id"
+                    value={formData.project_id}
+                    onChange={handleChange}
+                    disabled={!formData.addToMeistertask}
+                    className={`mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${!formData.addToMeistertask ? 'bg-gray-100' : ''}`}
+                  >
+                    <option value="">Select a project</option>
+                    {projects.map((proj) => (
+                      <option key={proj.id} value={proj.id}>
+                        {proj.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
               
               <div className="flex items-center">
@@ -272,7 +298,7 @@ const TaskForm = ({ task, onClose, project }) => {
                   name="linkToCalendar"
                   type="checkbox"
                   checked={formData.linkToCalendar}
-                  onChange={(e) => setFormData(prev => ({ ...prev, linkToCalendar: e.target.checked }))}
+                  onChange={handleChange}
                   className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                 />
                 <label htmlFor="linkToCalendar" className="ml-2 block text-sm text-gray-900">
