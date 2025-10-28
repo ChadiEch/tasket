@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { tasksAPI, departmentsAPI, employeesAPI } from '../lib/api';
+import { tasksAPI, departmentsAPI, employeesAPI, projectsAPI } from '../lib/api';
 import { useAuth } from './AuthContext';
 import { useWebSocket } from './WebSocketContext';
 
@@ -19,6 +19,7 @@ export const AppProvider = ({ children }) => {
   const [tasks, setTasks] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [projects, setProjects] = useState([]); // Add projects state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
@@ -44,6 +45,7 @@ export const AppProvider = ({ children }) => {
       setTasks([]);
       setDepartments([]);
       setEmployees([]);
+      setProjects([]); // Clear projects when not authenticated
     }
   }, [isAuthenticated, user]);
 
@@ -128,10 +130,11 @@ export const AppProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      const [tasksResponse, departmentsResponse, employeesResponse] = await Promise.all([
+      const [tasksResponse, departmentsResponse, employeesResponse, projectsResponse] = await Promise.all([
         tasksAPI.getTasks(),
         departmentsAPI.getDepartments(),
         employeesAPI.getEmployees(),
+        projectsAPI.getProjects(), // Fetch projects
       ]);
 
       // Filter out any trashed tasks that might have slipped through
@@ -140,6 +143,7 @@ export const AppProvider = ({ children }) => {
       setTasks(nonTrashedTasks);
       setDepartments(departmentsResponse.departments || []);
       setEmployees(employeesResponse.employees || []);
+      setProjects(projectsResponse.projects || []); // Set projects
     } catch (error) {
       console.error('Error fetching data:', error);
       setError(error.message);
@@ -647,6 +651,7 @@ export const AppProvider = ({ children }) => {
     tasks,
     departments,
     employees,
+    projects, // Add projects to context
     loading,
     error,
     

@@ -6,7 +6,7 @@ import { tasksAPI } from '../lib/api';
 
 const EnhancedCalendar = ({ view: propView }) => {
   const { 
-    tasks, 
+    tasks = [], 
     navigateToDayView, 
     selectedEmployee, 
     navigateToCalendar, 
@@ -32,8 +32,23 @@ const EnhancedCalendar = ({ view: propView }) => {
   
   // State for todo list with localStorage persistence per user
   const [todoList, setTodoList] = useState(() => {
-    const savedTodos = localStorage.getItem(`calendarTodos_${currentUser?.id || 'guest'}`);
-    return savedTodos ? JSON.parse(savedTodos) : [
+    try {
+      const savedTodos = localStorage.getItem(`calendarTodos_${currentUser?.id || 'guest'}`);
+      if (savedTodos) {
+        const parsedTodos = JSON.parse(savedTodos);
+        // Ensure it's an array
+        if (Array.isArray(parsedTodos)) {
+          return parsedTodos;
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to parse saved todos from localStorage:', error);
+      // Clear the invalid data
+      localStorage.removeItem(`calendarTodos_${currentUser?.id || 'guest'}`);
+    }
+    
+    // Return default todo list
+    return [
       { id: 'todo1', title: 'Review project documentation', description: '', completed: false, assignedDate: null, priority: 'medium', estimated_hours: 1.00, attachments: [] },
       { id: 'todo2', title: 'Prepare meeting agenda', description: '', completed: false, assignedDate: null, priority: 'high', estimated_hours: 0.50, attachments: [] },
       { id: 'todo3', title: 'Update team progress report', description: '', completed: false, assignedDate: null, priority: 'medium', estimated_hours: 2.00, attachments: [] }
@@ -45,7 +60,7 @@ const EnhancedCalendar = ({ view: propView }) => {
     description: '',
     priority: 'medium',
     estimated_hours: 1.00,
-    attachments: []
+    attachments: [] // Ensure this is always an array
   });
   
   const [showTodoForm, setShowTodoForm] = useState(false);
@@ -55,7 +70,9 @@ const EnhancedCalendar = ({ view: propView }) => {
 
   // Save todo list to localStorage whenever it changes, scoped to current user
   useEffect(() => {
-    localStorage.setItem(`calendarTodos_${currentUser?.id || 'guest'}`, JSON.stringify(todoList));
+    if (Array.isArray(todoList)) {
+      localStorage.setItem(`calendarTodos_${currentUser?.id || 'guest'}`, JSON.stringify(todoList));
+    }
   }, [todoList, currentUser?.id]);
 
   // Check if there's a task to view when component mounts or when tasks change
@@ -103,6 +120,9 @@ const EnhancedCalendar = ({ view: propView }) => {
     const monthStr = String(targetDate.getMonth() + 1).padStart(2, '0');
     const dayStr = String(targetDate.getDate()).padStart(2, '0');
     const targetDateStr = `${yearStr}-${monthStr}-${dayStr}`;
+
+    // Ensure tasks is an array
+    if (!Array.isArray(tasks)) return false;
 
     let filteredTasks = tasks.filter(task => {
       if (!task.created_at) return false;
@@ -153,6 +173,9 @@ const EnhancedCalendar = ({ view: propView }) => {
 
   const getTasksForDay = (day) => {
     if (!day || view !== 'days') return [];
+    
+    // Ensure tasks is an array
+    if (!Array.isArray(tasks)) return [];
     
     const targetDate = new Date(selectedYear, selectedMonth, day);
     const year = targetDate.getFullYear();
@@ -438,7 +461,13 @@ const EnhancedCalendar = ({ view: propView }) => {
 
   // Function to process todo attachments
   const processTodoAttachments = async (attachments = []) => {
-    if (!Array.isArray(attachments) || attachments.length === 0) {
+    // Ensure attachments is an array
+    if (!Array.isArray(attachments)) {
+      console.warn('Attachments is not an array:', attachments);
+      return [];
+    }
+    
+    if (attachments.length === 0) {
       return [];
     }
     
@@ -446,9 +475,9 @@ const EnhancedCalendar = ({ view: propView }) => {
     const existingAttachments = [];
     
     for (const attachment of attachments) {
-      if (attachment.file && typeof attachment.file === 'object' && attachment.file instanceof File) {
+      if (attachment && attachment.file && typeof attachment.file === 'object' && attachment.file instanceof File) {
         filesToUpload.push(attachment);
-      } else if (attachment.url) {
+      } else if (attachment && attachment.url) {
         existingAttachments.push(attachment);
       }
     }
@@ -458,6 +487,12 @@ const EnhancedCalendar = ({ view: propView }) => {
       const fileAttachment = filesToUpload[i];
       
       try {
+        // Ensure fileAttachment exists and has required properties
+        if (!fileAttachment || !fileAttachment.file) {
+          console.warn('Invalid file attachment:', fileAttachment);
+          continue;
+        }
+        
         const result = await tasksAPI.uploadFile(fileAttachment.file);
         
         if (result.task && result.task.attachments && Array.isArray(result.task.attachments) && result.task.attachments.length > 0) {
@@ -577,14 +612,23 @@ const EnhancedCalendar = ({ view: propView }) => {
 
   // Handle file upload for todo attachments
   const handleTodoFileUpload = async (e) => {
+    // Ensure e.target and e.target.files exist
+    if (!e || !e.target || !e.target.files) {
+      console.warn('Invalid file upload event:', e);
+      return;
+    }
+    
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
     
     const fileAttachments = files.map((file, index) => {
-      let type = 'document';
-      if (file.type.startsWith('image/')) {
+      // Ensure file exists
+      if (!file) return null;
+      
+      let type = 'document'; // Default type
+      if (file.type && file.type.startsWith('image/')) {
         type = 'photo';
-      } else if (file.type.startsWith('video/')) {
+      } else if (file.type && file.type.startsWith('video/')) {
         type = 'video';
       }
       
@@ -594,13 +638,14 @@ const EnhancedCalendar = ({ view: propView }) => {
         file: file,
         name: file.name,
         size: file.size,
-        url: URL.createObjectURL(file)
+        url: URL.createObjectURL(file) // For preview only
       };
-    });
+    }).filter(Boolean); // Remove any null values
     
+    // Add to newTodo attachments
     setNewTodo(prev => ({
       ...prev,
-      attachments: [...prev.attachments, ...fileAttachments]
+      attachments: [...(prev.attachments || []), ...fileAttachments]
     }));
   };
 
@@ -641,42 +686,80 @@ const EnhancedCalendar = ({ view: propView }) => {
 
   // Remove attachment from new todo
   const removeTodoAttachment = (id) => {
+    // Ensure newTodo and its attachments exist
+    if (!newTodo || !Array.isArray(newTodo.attachments)) {
+      console.warn('newTodo or attachments is invalid:', newTodo);
+      return;
+    }
+    
     setNewTodo(prev => {
-      const attachments = prev.attachments.filter(attachment => attachment.id !== id);
-      return { ...prev, attachments };
+      // Ensure prev.attachments is an array
+      const attachments = Array.isArray(prev.attachments) ? prev.attachments : [];
+      const filteredAttachments = attachments.filter(attachment => {
+        // Ensure attachment exists and has an id
+        return attachment && attachment.id !== id;
+      });
+      
+      return { ...prev, attachments: filteredAttachments };
     });
   };
 
   // Add new todo item with file uploads
   const addNewTodo = async () => {
-    if (newTodo.title.trim() === '') return;
+    if (!newTodo || newTodo.title.trim() === '') return;
     
     try {
+      console.log('Adding new todo with attachments:', newTodo);
+      
+      // Ensure attachments is an array
+      const attachments = Array.isArray(newTodo.attachments) ? newTodo.attachments : [];
+      
+      // Upload any file attachments to Cloudflare R2
       const attachmentsWithUrls = [];
       const filesToUpload = [];
       const linkAttachments = [];
       
-      for (const attachment of newTodo.attachments) {
+      for (const attachment of attachments) {
+        // Ensure attachment exists and has required properties
+        if (!attachment) continue;
+        
         if (attachment.file) {
+          // This is a file that needs to be uploaded
           filesToUpload.push(attachment);
         } else if (attachment.type === 'link' && attachment.url) {
+          // This is a link attachment
           linkAttachments.push(attachment);
         }
       }
       
+      console.log('Files to upload:', filesToUpload.length);
+      console.log('Link attachments:', linkAttachments.length);
+      
+      // Upload all files
       const uploadedAttachments = [];
       for (let i = 0; i < filesToUpload.length; i++) {
         const fileAttachment = filesToUpload[i];
         
+        // Ensure fileAttachment exists and has required properties
+        if (!fileAttachment || !fileAttachment.file) {
+          console.warn('Invalid file attachment:', fileAttachment);
+          continue;
+        }
+        
         try {
+          console.log('Uploading file:', fileAttachment.name);
           const result = await tasksAPI.uploadFile(fileAttachment.file);
+          console.log('File uploaded successfully:', result);
           
+          // Extract the uploaded file URL from the task attachments
           if (result.task && result.task.attachments && Array.isArray(result.task.attachments) && result.task.attachments.length > 0) {
+            // Find the attachment that matches our uploaded file
             const uploadedAttachment = result.task.attachments.find(attachment => 
               attachment.name === fileAttachment.name
-            ) || result.task.attachments[0];
+            ) || result.task.attachments[0]; // Fallback to first attachment
             
             if (uploadedAttachment && uploadedAttachment.url) {
+              console.log('Successfully uploaded file URL:', uploadedAttachment.url);
               uploadedAttachments.push({
                 id: fileAttachment.id,
                 type: fileAttachment.type,
@@ -685,17 +768,22 @@ const EnhancedCalendar = ({ view: propView }) => {
                 size: fileAttachment.size
               });
             } else {
+              console.error('Uploaded attachment missing URL:', uploadedAttachment);
               throw new Error('Uploaded file missing URL');
             }
           } else {
+            console.error('Invalid response structure:', result);
             throw new Error('Invalid response from server: missing attachments');
           }
         } catch (uploadError) {
+          console.error('Error uploading file:', uploadError);
           throw new Error(`Failed to upload file "${fileAttachment.name}": ${uploadError.message || 'Unknown error'}`);
         }
       }
       
+      // Combine all attachments
       const allAttachments = [...uploadedAttachments, ...linkAttachments];
+      console.log('All attachments:', allAttachments);
       
       const newTodoItem = {
         id: `todo${Date.now()}`,
@@ -714,6 +802,8 @@ const EnhancedCalendar = ({ view: propView }) => {
         attachments: []
       });
       setShowTodoForm(false);
+      
+      console.log('Todo added successfully');
     } catch (error) {
       console.error('Error adding todo with attachments:', error);
       alert(`Failed to add todo with attachments: ${error.message || 'Please try again.'}`);
@@ -1121,7 +1211,7 @@ const EnhancedCalendar = ({ view: propView }) => {
             )}
             
             <ul className="space-y-3 max-h-96 overflow-y-auto">
-              {todoList.map(todo => (
+              {Array.isArray(todoList) && todoList.map(todo => (
                 <li 
                   key={todo.id} 
                   className="bg-gray-50 rounded-lg p-3 border border-gray-200"
@@ -1169,7 +1259,7 @@ const EnhancedCalendar = ({ view: propView }) => {
                     </button>
                   </div>
                   
-                  {todo.attachments.length > 0 && (
+                  {todo.attachments && todo.attachments.length > 0 && (
                     <div className="mt-2">
                       <div className="text-xs text-gray-500 mb-1">Attachments:</div>
                       <div className="flex flex-wrap gap-1">

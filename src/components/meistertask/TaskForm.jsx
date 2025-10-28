@@ -204,7 +204,7 @@ const TaskForm = ({ task, onClose, project }) => {
                   <option value="">No project</option>
                   {projects.map((proj) => (
                     <option key={proj.id} value={proj.id}>
-                      {proj.name}
+                      {proj.title}
                     </option>
                   ))}
                 </select>

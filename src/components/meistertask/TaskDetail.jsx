@@ -5,8 +5,11 @@ import { useApp } from '../../context/AppContext';
 const TaskDetail = ({ task, onClose, onEdit }) => {
   const { employees, projects } = useApp();
   
+  // Ensure projects is an array to prevent errors
+  const safeProjects = Array.isArray(projects) ? projects : [];
+  
   const assignee = employees.find(emp => emp.id === task.assigned_to);
-  const project = projects.find(proj => proj.id === task.project_id);
+  const project = safeProjects.find(proj => proj.id === task.project_id);
   
   const priorityColors = {
     low: 'bg-green-100 text-green-800',
@@ -68,7 +71,7 @@ const TaskDetail = ({ task, onClose, onEdit }) => {
             <div>
               <h4 className="text-sm font-medium text-gray-500">Project</h4>
               <p className="mt-1 text-sm text-gray-900">
-                {project ? project.name : 'No project'}
+                {project ? project.title : 'No project'} {/* Changed from project.name to project.title */}
               </p>
             </div>
             
