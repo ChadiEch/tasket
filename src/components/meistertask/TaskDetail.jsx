@@ -91,18 +91,46 @@ const TaskDetail = ({ task, onClose, onEdit }) => {
             </div>
           </div>
           
-          {task.attachments && task.attachments.length > 0 && (
+          {/* Image Gallery */}
+          {task.attachments && task.attachments.filter(att => att.type === 'image').length > 0 && (
             <div className="mt-6">
-              <h4 className="text-sm font-medium text-gray-500">Attachments</h4>
+              <h4 className="text-sm font-medium text-gray-500">Images</h4>
+              <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {task.attachments
+                  .filter(att => att.type === 'image')
+                  .map((attachment, index) => (
+                    <div key={index} className="relative">
+                      <img 
+                        src={attachment.url} 
+                        alt={attachment.name} 
+                        className="h-32 w-full object-cover rounded"
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 truncate">
+                        {attachment.name}
+                      </div>
+                    </div>
+                  ))
+                }
+              </div>
+            </div>
+          )}
+          
+          {/* Other Attachments */}
+          {task.attachments && task.attachments.filter(att => att.type !== 'image').length > 0 && (
+            <div className="mt-6">
+              <h4 className="text-sm font-medium text-gray-500">Other Attachments</h4>
               <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {task.attachments.map((attachment, index) => (
-                  <div key={index} className="flex items-center p-2 bg-gray-50 rounded-md">
-                    <svg className="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clipRule="evenodd" />
-                    </svg>
-                    <span className="ml-2 text-sm text-gray-900 truncate">{attachment.name}</span>
-                  </div>
-                ))}
+                {task.attachments
+                  .filter(att => att.type !== 'image')
+                  .map((attachment, index) => (
+                    <div key={index} className="flex items-center p-2 bg-gray-50 rounded-md">
+                      <svg className="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clipRule="evenodd" />
+                      </svg>
+                      <span className="ml-2 text-sm text-gray-900 truncate">{attachment.name}</span>
+                    </div>
+                  ))
+                }
               </div>
             </div>
           )}

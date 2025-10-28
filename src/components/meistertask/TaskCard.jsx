@@ -77,6 +77,33 @@ const TaskCard = ({ task, employees, onEdit, onView, onDragStart }) => {
         )}
       </div>
       
+      {/* Image thumbnails */}
+      {task.attachments && task.attachments.filter(att => att.type === 'image').length > 0 && (
+        <div className="mt-2 grid grid-cols-3 gap-1">
+          {task.attachments
+            .filter(att => att.type === 'image')
+            .slice(0, 3) // Show only first 3 images
+            .map((attachment, index) => (
+              <div key={index} className="relative">
+                <img 
+                  src={attachment.url} 
+                  alt="Attachment preview" 
+                  className="h-16 w-full object-cover rounded"
+                />
+                {index === 2 && task.attachments.filter(att => att.type === 'image').length > 3 && (
+                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded">
+                    <span className="text-white text-xs font-bold">
+                      +{task.attachments.filter(att => att.type === 'image').length - 3}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ))
+          }
+        </div>
+      )}
+      
+      {/* Attachment count */}
       {task.attachments && task.attachments.length > 0 && (
         <div className="mt-2 flex items-center text-xs text-gray-500">
           <svg className="flex-shrink-0 mr-1 h-4 w-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">

@@ -18,6 +18,13 @@ const Meistertask = () => {
     { id: 'done', title: 'Done', color: 'bg-green-200' }
   ]);
   
+  const [showColumnForm, setShowColumnForm] = useState(false);
+  const [editingColumn, setEditingColumn] = useState(null);
+  const [columnFormData, setColumnFormData] = useState({
+    title: '',
+    color: 'bg-gray-200'
+  });
+  
   const [selectedTask, setSelectedTask] = useState(null);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
@@ -111,6 +118,57 @@ const Meistertask = () => {
   const handleCreateTask = () => {
     setEditingTask(null);
     setShowTaskForm(true);
+  };
+  
+  const handleAddColumn = () => {
+    setEditingColumn(null);
+    setColumnFormData({ title: '', color: 'bg-gray-200' });
+    setShowColumnForm(true);
+  };
+  
+  const handleEditColumn = (column) => {
+    setEditingColumn(column);
+    setColumnFormData({ title: column.title, color: column.color });
+    setShowColumnForm(true);
+  };
+  
+  const handleDeleteColumn = (columnId) => {
+    if (window.confirm('Are you sure you want to delete this column? All tasks in this column will be moved to Backlog.')) {
+      setBoardColumns(prev => prev.filter(col => col.id !== columnId));
+    }
+  };
+  
+  const handleSaveColumn = () => {
+    if (!columnFormData.title.trim()) return;
+    
+    if (editingColumn) {
+      // Update existing column
+      setBoardColumns(prev => 
+        prev.map(col => 
+          col.id === editingColumn.id 
+            ? { ...col, title: columnFormData.title, color: columnFormData.color }
+            : col
+        )
+      );
+    } else {
+      // Add new column
+      const newColumn = {
+        id: columnFormData.title.toLowerCase().replace(/\s+/g, '-'),
+        title: columnFormData.title,
+        color: columnFormData.color
+      };
+      setBoardColumns(prev => [...prev, newColumn]);
+    }
+    
+    setShowColumnForm(false);
+    setEditingColumn(null);
+    setColumnFormData({ title: '', color: 'bg-gray-200' });
+  };
+  
+  const handleCloseColumnForm = () => {
+    setShowColumnForm(false);
+    setEditingColumn(null);
+    setColumnFormData({ title: '', color: 'bg-gray-200' });
   };
   
   const handleEditTask = (task) => {
@@ -227,12 +285,20 @@ const Meistertask = () => {
           </select>
         </div>
         
-        <button
-          onClick={handleCreateTask}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-        >
-          + Add Task
-        </button>
+        <div className="flex space-x-2">
+          <button
+            onClick={handleCreateTask}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+          >
+            + Add Task
+          </button>
+          <button
+            onClick={handleAddColumn}
+            className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+          >
+            + Add Column
+          </button>
+        </div>
       </div>
       
       {/* Kanban Board */}
@@ -246,8 +312,38 @@ const Meistertask = () => {
               onDrop={(e) => handleDrop(e, column.id)}
             >
               <div className={`rounded-t-lg px-4 py-2 ${column.color}`}>
-                <h3 className="font-semibold text-gray-800">{column.title}</h3>
-                <span className="text-sm text-gray-600">({tasksByColumn[column.id].length})</span>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="font-semibold text-gray-800">{column.title}</h3>
+                    <span className="text-sm text-gray-600">({tasksByColumn[column.id].length})</span>
+                  </div>
+                  <div className="flex space-x-1">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditColumn(column);
+                      }}
+                      className="text-gray-600 hover:text-gray-800"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    {boardColumns.length > 1 && (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteColumn(column.id);
+                        }}
+                        className="text-gray-600 hover:text-red-600"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
               <div className="bg-gray-50 rounded-b-lg min-h-96 p-4">
                 {tasksByColumn[column.id].map(task => (
@@ -291,6 +387,70 @@ const Meistertask = () => {
           onCreate={createTask}
           onUpdate={updateTask}
         />
+      )}
+      
+      {/* Column Form Modal */}
+      {showColumnForm && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900">
+                {editingColumn ? 'Edit Column' : 'Add New Column'}
+              </h3>
+              
+              <div className="mt-6 space-y-4">
+                <div>
+                  <label htmlFor="columnTitle" className="block text-sm font-medium text-gray-700">
+                    Column Title *
+                  </label>
+                  <input
+                    type="text"
+                    id="columnTitle"
+                    value={columnFormData.title}
+                    onChange={(e) => setColumnFormData(prev => ({ ...prev, title: e.target.value }))}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Column Color
+                  </label>
+                  <div className="mt-1 grid grid-cols-6 gap-2">
+                    {[
+                      'bg-gray-200', 'bg-blue-200', 'bg-yellow-200', 
+                      'bg-purple-200', 'bg-green-200', 'bg-red-200',
+                      'bg-pink-200', 'bg-indigo-200', 'bg-teal-200'
+                    ].map(color => (
+                      <button
+                        key={color}
+                        onClick={() => setColumnFormData(prev => ({ ...prev, color }))}
+                        className={`w-8 h-8 rounded-full ${color} ${columnFormData.color === color ? 'ring-2 ring-offset-2 ring-indigo-500' : ''}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="flex justify-end space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={handleCloseColumnForm}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveColumn}
+                    className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700"
+                  >
+                    {editingColumn ? 'Update Column' : 'Add Column'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -13,10 +13,22 @@ const TaskForm = ({ task, onClose, project }) => {
     assigned_to: '',
     project_id: project?.id || '',
     due_date: '',
-    attachments: []
+    attachments: [],
+    linkToCalendar: false
   });
   
   const [errors, setErrors] = useState({});
+  
+  // Clean up object URLs to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      formData.attachments.forEach(attachment => {
+        if (attachment.url && attachment.url.startsWith('blob:')) {
+          URL.revokeObjectURL(attachment.url);
+        }
+      });
+    };
+  }, [formData.attachments]);
 
   useEffect(() => {
     if (task) {
@@ -64,6 +76,39 @@ const TaskForm = ({ task, onClose, project }) => {
       }));
     }
   };
+  
+  const handleImageUpload = (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    // Convert files to preview URLs and add to attachments
+    const newAttachments = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.type.startsWith('image/')) {
+        const url = URL.createObjectURL(file);
+        newAttachments.push({
+          id: Date.now() + i, // Simple ID generation
+          type: 'image',
+          name: file.name,
+          url: url,
+          file: file // Keep reference to actual file
+        });
+      }
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      attachments: [...prev.attachments, ...newAttachments]
+    }));
+  };
+  
+  const removeAttachment = (attachmentId) => {
+    setFormData(prev => ({
+      ...prev,
+      attachments: prev.attachments.filter(att => att.id !== attachmentId)
+    }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -77,6 +122,16 @@ const TaskForm = ({ task, onClose, project }) => {
         ...formData,
         due_date: formData.due_date ? new Date(formData.due_date).toISOString() : null
       };
+      
+      // Remove the linkToCalendar field as it's only for UI purposes
+      delete taskData.linkToCalendar;
+      
+      // Remove file references from attachments before sending to backend
+      const attachmentsWithoutFiles = taskData.attachments.map(att => {
+        const { file, ...rest } = att;
+        return rest;
+      });
+      taskData.attachments = attachmentsWithoutFiles;
       
       if (task) {
         // Update existing task
@@ -210,6 +265,20 @@ const TaskForm = ({ task, onClose, project }) => {
                   ))}
                 </select>
               </div>
+              
+              <div className="flex items-center">
+                <input
+                  id="linkToCalendar"
+                  name="linkToCalendar"
+                  type="checkbox"
+                  checked={formData.linkToCalendar}
+                  onChange={(e) => setFormData(prev => ({ ...prev, linkToCalendar: e.target.checked }))}
+                  className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
+                <label htmlFor="linkToCalendar" className="ml-2 block text-sm text-gray-900">
+                  Link to calendar event
+                </label>
+              </div>
             </div>
             
             <div>
@@ -224,6 +293,66 @@ const TaskForm = ({ task, onClose, project }) => {
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               />
+            </div>
+            
+            {/* Image Upload Section */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Attach Images
+              </label>
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                <div className="space-y-1 text-center">
+                  <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <div className="flex text-sm text-gray-600">
+                    <label htmlFor="image-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
+                      <span>Upload images</span>
+                      <input 
+                        id="image-upload" 
+                        name="image-upload" 
+                        type="file" 
+                        className="sr-only" 
+                        accept="image/*" 
+                        multiple 
+                        onChange={handleImageUpload}
+                      />
+                    </label>
+                    <p className="pl-1">or drag and drop</p>
+                  </div>
+                  <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                </div>
+              </div>
+              
+              {/* Preview of uploaded images */}
+              {formData.attachments.filter(att => att.type === 'image').length > 0 && (
+                <div className="mt-4">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Image Previews</h4>
+                  <div className="grid grid-cols-3 gap-2">
+                    {formData.attachments
+                      .filter(att => att.type === 'image')
+                      .map((attachment, index) => (
+                        <div key={index} className="relative">
+                          <img 
+                            src={attachment.url} 
+                            alt="Preview" 
+                            className="h-20 w-full object-cover rounded"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeAttachment(attachment.id)}
+                            className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1"
+                          >
+                            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))
+                    }
+                  </div>
+                </div>
+              )}
             </div>
             
             <div className="flex justify-end space-x-3 pt-4">
