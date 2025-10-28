@@ -747,6 +747,12 @@ export const AppProvider = ({ children }) => {
     updateTaskState,
     addTaskState,
     
+    // Project operations
+    addProject,
+    createProject,
+    updateProject,
+    deleteProject,
+    
     // Function aliases for compatibility
     addTask: createTask,
     
