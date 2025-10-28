@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import TaskCard from './TaskCard';
 import TaskForm from './TaskForm';
 import TaskDetail from './TaskDetail';
-import ProjectForm from '../projects/ProjectForm'; // Add ProjectForm import
+import ProjectForm from '../projects/ProjectForm';
 
 const Meistertask = () => {
   const { tasks, projects, employees, currentUser, isAdmin, updateTask, createTask, addTaskState, updateProject } = useApp();
@@ -85,9 +85,11 @@ const Meistertask = () => {
         return false;
       }
       
-      // For non-admin users, only show their tasks
-      if (!isAdmin && task.assigned_to !== currentUser?.id) {
-        return false;
+      // For non-admin users, show all tasks in the selected project
+      // For admin users, show all tasks in the selected project
+      // If no project selected, show all tasks
+      if (selectedProject) {
+        return task.project_id === selectedProject.id;
       }
       
       return true;
@@ -347,7 +349,7 @@ const Meistertask = () => {
           <div className="mb-6">
             <div className="flex justify-between items-center">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Projects</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Meistertask Projects</h1>
                 <p className="text-gray-600">Select a project to view its tasks</p>
               </div>
               {isAdmin && (
@@ -362,7 +364,7 @@ const Meistertask = () => {
           </div>
           
           {/* Project Cards */}
-          {projects.length === 0 ? (
+          {projects && projects.length === 0 ? (
             <div className="bg-white rounded-lg shadow p-8 text-center">
               <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
@@ -385,7 +387,7 @@ const Meistertask = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {projects.map((project) => (
+              {projects && projects.map((project) => (
                 <div key={project.id} className="bg-white rounded-lg shadow overflow-hidden">
                   <div className="p-6">
                     <div className="flex justify-between items-start">
