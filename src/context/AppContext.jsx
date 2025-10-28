@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { tasksAPI, departmentsAPI, employeesAPI, projectsAPI } from '../lib/api';
+import { tasksAPI, departmentsAPI, employeesAPI, projectsAPI, meistertaskProjectsAPI } from '../lib/api';
 import { useAuth } from './AuthContext';
 import { useWebSocket } from './WebSocketContext';
 
