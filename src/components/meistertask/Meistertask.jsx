@@ -142,9 +142,10 @@ const Meistertask = () => {
     setDraggedTask(null);
   };
   
-  const handleCreateTask = () => {
+  const handleCreateTask = (columnId) => {
     setEditingTask(null);
-    setShowTaskForm(true);
+    // Pass the columnId to pre-select the status in the task form
+    setShowTaskForm({ columnId });
   };
   
   const handleAddColumn = () => {
@@ -162,7 +163,12 @@ const Meistertask = () => {
   const handleDeleteColumn = (columnId) => {
     if (window.confirm('Are you sure you want to delete this column? All tasks in this column will be moved to Backlog.')) {
       if (selectedProject) {
-        setProjectColumns(prev => prev.filter(col => col.id !== columnId));
+        // Update project columns
+        const updatedColumns = projectColumns.filter(col => col.id !== columnId);
+        setProjectColumns(updatedColumns);
+        
+        // Save to project
+        handleSaveProjectColumns(updatedColumns);
       } else {
         setBoardColumns(prev => prev.filter(col => col.id !== columnId));
       }
@@ -181,13 +187,15 @@ const Meistertask = () => {
     if (editingColumn) {
       // Update existing column
       if (selectedProject) {
-        setProjectColumns(prev => 
-          prev.map(col => 
-            col.id === editingColumn.id 
-              ? { ...col, title: columnFormData.title, color: columnFormData.color }
-              : col
-          )
+        const updatedColumns = projectColumns.map(col => 
+          col.id === editingColumn.id 
+            ? { ...col, title: columnFormData.title, color: columnFormData.color }
+            : col
         );
+        setProjectColumns(updatedColumns);
+        
+        // Save to project
+        handleSaveProjectColumns(updatedColumns);
       } else {
         setBoardColumns(prev => 
           prev.map(col => 
@@ -200,7 +208,11 @@ const Meistertask = () => {
     } else {
       // Add new column
       if (selectedProject) {
-        setProjectColumns(prev => [...prev, newColumn]);
+        const updatedColumns = [...projectColumns, newColumn];
+        setProjectColumns(updatedColumns);
+        
+        // Save to project
+        handleSaveProjectColumns(updatedColumns);
       } else {
         setBoardColumns(prev => [...prev, newColumn]);
       }
@@ -209,6 +221,22 @@ const Meistertask = () => {
     setShowColumnForm(false);
     setEditingColumn(null);
     setColumnFormData({ title: '', color: 'bg-gray-200' });
+  };
+  
+  // Save project columns to the project
+  const handleSaveProjectColumns = async (columns) => {
+    if (!selectedProject) return;
+    
+    try {
+      // Here you would typically call an API to save the columns to the project
+      // For now, we'll just update the local state
+      // In a real implementation, you would call something like:
+      // await updateProject(selectedProject.id, { columns });
+      console.log('Saving project columns:', columns);
+    } catch (error) {
+      console.error('Error saving project columns:', error);
+      alert('Failed to save project columns');
+    }
   };
   
   const handleCloseColumnForm = () => {
@@ -500,12 +528,6 @@ const Meistertask = () => {
             
             <div className="flex space-x-2">
               <button
-                onClick={handleCreateTask}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-              >
-                + Add Task
-              </button>
-              <button
                 onClick={handleAddColumn}
                 className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
               >
@@ -559,6 +581,17 @@ const Meistertask = () => {
                     </div>
                   </div>
                   <div className="bg-gray-50 rounded-b-lg min-h-96 p-4">
+                    {/* Add Task Button inside each column */}
+                    <button
+                      onClick={() => handleCreateTask(column.id)}
+                      className="w-full mb-4 px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 flex items-center justify-center"
+                    >
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Add Task
+                    </button>
+                    
                     {tasksByColumn[column.id] && tasksByColumn[column.id].map(task => (
                       <TaskCard 
                         key={task.id}
@@ -599,6 +632,7 @@ const Meistertask = () => {
           task={editingTask}
           employees={employees}
           project={selectedProject}
+          columnId={showTaskForm.columnId} // Pass the columnId to pre-select status
           onClose={handleCloseTaskForm}
           onCreate={createTask}
           onUpdate={updateTask}

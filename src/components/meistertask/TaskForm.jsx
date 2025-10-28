@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { format } from 'date-fns';
 
-const TaskForm = ({ task, onClose, project }) => {
+const TaskForm = ({ task, onClose, project, columnId }) => {
   const { createTask, updateTask, employees, projects } = useApp();
   
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    status: 'planned',
+    status: columnId || 'planned', // Use columnId as initial status if provided
     priority: 'medium',
     assigned_to: '',
     project_id: project?.id || '',
@@ -52,7 +52,15 @@ const TaskForm = ({ task, onClose, project }) => {
         addToMeistertask: true
       }));
     }
-  }, [task, project]);
+    
+    // If columnId is provided and we're creating a new task, set the status
+    if (!task && columnId) {
+      setFormData(prev => ({
+        ...prev,
+        status: columnId
+      }));
+    }
+  }, [task, project, columnId]);
 
   const validateForm = () => {
     const newErrors = {};
