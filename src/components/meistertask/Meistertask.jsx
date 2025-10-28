@@ -7,7 +7,7 @@ import TaskDetail from './TaskDetail';
 import ProjectForm from '../projects/ProjectForm';
 
 const Meistertask = () => {
-  const { tasks, meistertaskProjects: projects, employees, currentUser, isAdmin, updateTask, createTask, addTaskState, updateMeistertaskProject: updateProject, createMeistertaskProject: createProject } = useApp();
+  const { tasks, meistertaskProjects: projects, employees, currentUser, isAdmin, updateTask, createTask, addTaskState, updateMeistertaskProject: updateProject, createMeistertaskProject: createProject, fetchAllData } = useApp();
   const { user } = useAuth();
   
   const [selectedProject, setSelectedProject] = useState(null);
@@ -47,6 +47,14 @@ const Meistertask = () => {
       setProjectColumns([]);
     }
   }, [selectedProject]);
+  
+  // Fetch data when component mounts
+  useEffect(() => {
+    const fetchData = async () => {
+      await fetchAllData();
+    };
+    fetchData();
+  }, [fetchAllData]);
   
   // Get the columns to display (project columns if project selected, otherwise default columns)
   const getDisplayColumns = () => {
@@ -320,6 +328,9 @@ const Meistertask = () => {
     if (selectedProject && selectedProject.id === project.id) {
       setSelectedProject(project);
     }
+    
+    // Refresh the project list
+    await fetchAllData();
   };
   
   const handleProjectCancelled = () => {
@@ -346,6 +357,11 @@ const Meistertask = () => {
       {/* Show project cards when no project is selected */}
       {!selectedProject ? (
         <div>
+          {/* Debug information */}
+          <div className="mb-4 p-2 bg-yellow-100 text-yellow-800 rounded">
+            Debug: projects = {JSON.stringify(projects)}
+          </div>
+          
           {/* Header */}
           <div className="mb-6">
             <div className="flex justify-between items-center">
@@ -353,14 +369,24 @@ const Meistertask = () => {
                 <h1 className="text-2xl font-bold text-gray-900">Meistertask Projects</h1>
                 <p className="text-gray-600">Select a project to view its tasks</p>
               </div>
-              {isAdmin && (
+              <div className="flex space-x-2">
                 <button
-                  onClick={handleCreateProject}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                  onClick={fetchAllData}
+                  className="px-3 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
                 >
-                  + Create Project
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
                 </button>
-              )}
+                {isAdmin && (
+                  <button
+                    onClick={handleCreateProject}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                  >
+                    + Create Project
+                  </button>
+                )}
+              </div>
             </div>
           </div>
           
@@ -386,9 +412,9 @@ const Meistertask = () => {
                 </div>
               )}
             </div>
-          ) : (
+          ) : projects && projects.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {projects && projects.map((project) => (
+              {projects.map((project) => (
                 <div key={project.id} className="bg-white rounded-lg shadow overflow-hidden">
                   <div className="p-6">
                     <div className="flex justify-between items-start">
@@ -428,6 +454,17 @@ const Meistertask = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow p-8 text-center">
+              <div className="flex justify-center">
+                <svg className="animate-spin h-12 w-12 text-indigo-600" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </div>
+              <h3 className="mt-4 text-lg font-medium text-gray-900">Loading projects...</h3>
+              <p className="mt-1 text-gray-500">Please wait while we fetch your projects.</p>
             </div>
           )}
         </div>
