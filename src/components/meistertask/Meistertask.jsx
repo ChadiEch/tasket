@@ -7,7 +7,7 @@ import TaskDetail from './TaskDetail';
 import ProjectForm from '../projects/ProjectForm'; // Add ProjectForm import
 
 const Meistertask = () => {
-  const { tasks, projects, employees, currentUser, isAdmin, updateTask, createTask, addTaskState } = useApp();
+  const { tasks, projects, employees, currentUser, isAdmin, updateTask, createTask, addTaskState, updateProject } = useApp();
   const { user } = useAuth();
   
   const [selectedProject, setSelectedProject] = useState(null);
@@ -160,22 +160,22 @@ const Meistertask = () => {
     setShowColumnForm(true);
   };
   
-  const handleDeleteColumn = (columnId) => {
+  const handleDeleteColumn = async (columnId) => {
     if (window.confirm('Are you sure you want to delete this column? All tasks in this column will be moved to Backlog.')) {
       if (selectedProject) {
         // Update project columns
         const updatedColumns = projectColumns.filter(col => col.id !== columnId);
         setProjectColumns(updatedColumns);
         
-        // Save to project
-        handleSaveProjectColumns(updatedColumns);
+        // Save to backend
+        await handleSaveProjectColumns(updatedColumns);
       } else {
         setBoardColumns(prev => prev.filter(col => col.id !== columnId));
       }
     }
   };
   
-  const handleSaveColumn = () => {
+  const handleSaveColumn = async () => {
     if (!columnFormData.title.trim()) return;
     
     const newColumn = {
@@ -194,8 +194,8 @@ const Meistertask = () => {
         );
         setProjectColumns(updatedColumns);
         
-        // Save to project
-        handleSaveProjectColumns(updatedColumns);
+        // Save to backend
+        await handleSaveProjectColumns(updatedColumns);
       } else {
         setBoardColumns(prev => 
           prev.map(col => 
@@ -211,8 +211,8 @@ const Meistertask = () => {
         const updatedColumns = [...projectColumns, newColumn];
         setProjectColumns(updatedColumns);
         
-        // Save to project
-        handleSaveProjectColumns(updatedColumns);
+        // Save to backend
+        await handleSaveProjectColumns(updatedColumns);
       } else {
         setBoardColumns(prev => [...prev, newColumn]);
       }
@@ -223,16 +223,17 @@ const Meistertask = () => {
     setColumnFormData({ title: '', color: 'bg-gray-200' });
   };
   
-  // Save project columns to the project
+  // Save project columns to the backend
   const handleSaveProjectColumns = async (columns) => {
     if (!selectedProject) return;
     
     try {
-      // Here you would typically call an API to save the columns to the project
-      // For now, we'll just update the local state
-      // In a real implementation, you would call something like:
-      // await updateProject(selectedProject.id, { columns });
-      console.log('Saving project columns:', columns);
+      // Save columns to the project in the backend
+      const updatedProject = await updateProject(selectedProject.id, { columns });
+      console.log('Project columns saved:', updatedProject);
+      
+      // Update the selected project with the new columns
+      setSelectedProject(updatedProject);
     } catch (error) {
       console.error('Error saving project columns:', error);
       alert('Failed to save project columns');

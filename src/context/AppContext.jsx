@@ -423,6 +423,61 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // Project operations
+  const addProject = async (projectData) => {
+    try {
+      setError(null);
+      const response = await projectsAPI.createProject(projectData);
+      setProjects(prev => [...prev, response.project]);
+      return { project: response.project, error: null };
+    } catch (error) {
+      console.error('Error creating project:', error);
+      setError(error.message);
+      return { project: null, error: error.message };
+    }
+  };
+
+  const createProject = async (projectData) => {
+    try {
+      setError(null);
+      const response = await projectsAPI.createProject(projectData);
+      setProjects(prev => [...prev, response.project]);
+      return { project: response.project, error: null };
+    } catch (error) {
+      console.error('Error creating project:', error);
+      setError(error.message);
+      return { project: null, error: error.message };
+    }
+  };
+
+  const updateProject = async (projectId, projectData) => {
+    try {
+      setError(null);
+      const response = await projectsAPI.updateProject(projectId, projectData);
+      setProjects(prev => prev.map(project => 
+        project.id === projectId ? response.project : project
+      ));
+      return response.project;
+    } catch (error) {
+      console.error('Error updating project:', error);
+      setError(error.message);
+      throw error;
+    }
+  };
+
+  const deleteProject = async (projectId) => {
+    try {
+      setError(null);
+      await projectsAPI.deleteProject(projectId);
+      setProjects(prev => prev.filter(project => project.id !== projectId));
+      return { error: null };
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      setError(error.message);
+      return { error: error.message };
+    }
+  };
+
   // Utility functions
   const getTasksByStatus = (status) => {
     // Exclude trashed tasks from all status filters
