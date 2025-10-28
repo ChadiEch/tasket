@@ -357,11 +357,6 @@ const Meistertask = () => {
       {/* Show project cards when no project is selected */}
       {!selectedProject ? (
         <div>
-          {/* Debug information */}
-          <div className="mb-4 p-2 bg-yellow-100 text-yellow-800 rounded">
-            Debug: projects = {JSON.stringify(projects)}
-          </div>
-          
           {/* Header */}
           <div className="mb-6">
             <div className="flex justify-between items-center">
