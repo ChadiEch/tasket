@@ -9,7 +9,8 @@ const Meistertask = () => {
   const { tasks, projects, employees, currentUser, isAdmin, updateTask, createTask } = useApp();
   const { user } = useAuth();
   
-  // Default board columns (similar to MeisterTask's Kanban board)
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [projectColumns, setProjectColumns] = useState([]);
   const [boardColumns, setBoardColumns] = useState([
     { id: 'backlog', title: 'Backlog', color: 'bg-gray-200' },
     { id: 'todo', title: 'To Do', color: 'bg-blue-200' },
@@ -33,17 +34,35 @@ const Meistertask = () => {
   const [filterAssignee, setFilterAssignee] = useState('');
   const [filterPriority, setFilterPriority] = useState('');
   
+  // Load project columns when a project is selected
+  useEffect(() => {
+    if (selectedProject && selectedProject.columns) {
+      setProjectColumns(selectedProject.columns);
+    } else {
+      setProjectColumns([]);
+    }
+  }, [selectedProject]);
+  
+  // Get the columns to display (project columns if project selected, otherwise default columns)
+  const getDisplayColumns = () => {
+    return selectedProject && projectColumns.length > 0 ? projectColumns : boardColumns;
+  };
+  
   // Group tasks by status for the board
   const getTasksByColumn = () => {
+    const columns = getDisplayColumns();
     const columnTasks = {};
     
     // Initialize empty arrays for each column
-    boardColumns.forEach(column => {
+    columns.forEach(column => {
       columnTasks[column.id] = [];
     });
     
-    // Filter and sort tasks
+    // Filter tasks by project if a project is selected
     let filteredTasks = tasks.filter(task => {
+      // Filter by project
+      if (selectedProject && task.project_id !== selectedProject.id) return false;
+      
       // Filter by search term
       if (searchTerm && 
           !task.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
@@ -76,7 +95,9 @@ const Meistertask = () => {
         columnTasks[status].push(task);
       } else {
         // If task status doesn't match any column, put it in backlog
-        columnTasks['backlog'].push(task);
+        if (columnTasks['backlog']) {
+          columnTasks['backlog'].push(task);
+        }
       }
     });
     
@@ -84,6 +105,7 @@ const Meistertask = () => {
   };
   
   const tasksByColumn = getTasksByColumn();
+  const displayColumns = getDisplayColumns();
   
   // Handle drag start
   const handleDragStart = (e, task) => {
@@ -134,30 +156,49 @@ const Meistertask = () => {
   
   const handleDeleteColumn = (columnId) => {
     if (window.confirm('Are you sure you want to delete this column? All tasks in this column will be moved to Backlog.')) {
-      setBoardColumns(prev => prev.filter(col => col.id !== columnId));
+      if (selectedProject) {
+        setProjectColumns(prev => prev.filter(col => col.id !== columnId));
+      } else {
+        setBoardColumns(prev => prev.filter(col => col.id !== columnId));
+      }
     }
   };
   
   const handleSaveColumn = () => {
     if (!columnFormData.title.trim()) return;
     
+    const newColumn = {
+      id: columnFormData.title.toLowerCase().replace(/\s+/g, '-'),
+      title: columnFormData.title,
+      color: columnFormData.color
+    };
+    
     if (editingColumn) {
       // Update existing column
-      setBoardColumns(prev => 
-        prev.map(col => 
-          col.id === editingColumn.id 
-            ? { ...col, title: columnFormData.title, color: columnFormData.color }
-            : col
-        )
-      );
+      if (selectedProject) {
+        setProjectColumns(prev => 
+          prev.map(col => 
+            col.id === editingColumn.id 
+              ? { ...col, title: columnFormData.title, color: columnFormData.color }
+              : col
+          )
+        );
+      } else {
+        setBoardColumns(prev => 
+          prev.map(col => 
+            col.id === editingColumn.id 
+              ? { ...col, title: columnFormData.title, color: columnFormData.color }
+              : col
+          )
+        );
+      }
     } else {
       // Add new column
-      const newColumn = {
-        id: columnFormData.title.toLowerCase().replace(/\s+/g, '-'),
-        title: columnFormData.title,
-        color: columnFormData.color
-      };
-      setBoardColumns(prev => [...prev, newColumn]);
+      if (selectedProject) {
+        setProjectColumns(prev => [...prev, newColumn]);
+      } else {
+        setBoardColumns(prev => [...prev, newColumn]);
+      }
     }
     
     setShowColumnForm(false);
@@ -189,16 +230,28 @@ const Meistertask = () => {
     setEditingTask(null);
   };
   
+  const handleProjectSelect = (projectId) => {
+    if (!projectId) {
+      setSelectedProject(null);
+      return;
+    }
+    
+    const project = projects.find(p => p.id === projectId);
+    setSelectedProject(project);
+  };
+  
   // Calculate stats for overview
   const calculateStats = () => {
-    const allTasks = tasks.filter(task => {
+    // Filter tasks by project if a project is selected
+    const filteredTasks = tasks.filter(task => {
+      if (selectedProject && task.project_id !== selectedProject.id) return false;
       if (!isAdmin && task.assigned_to !== currentUser?.id) return false;
       return true;
     });
     
-    const completedTasks = allTasks.filter(task => task.status === 'done');
-    const inProgressTasks = allTasks.filter(task => task.status === 'in-progress');
-    const overdueTasks = allTasks.filter(task => {
+    const completedTasks = filteredTasks.filter(task => task.status === 'done');
+    const inProgressTasks = filteredTasks.filter(task => task.status === 'in-progress');
+    const overdueTasks = filteredTasks.filter(task => {
       if (!task.due_date) return false;
       const dueDate = new Date(task.due_date);
       const now = new Date();
@@ -206,7 +259,7 @@ const Meistertask = () => {
     });
     
     return {
-      total: allTasks.length,
+      total: filteredTasks.length,
       completed: completedTasks.length,
       inProgress: inProgressTasks.length,
       overdue: overdueTasks.length
@@ -217,10 +270,50 @@ const Meistertask = () => {
   
   return (
     <div className="p-6">
+      {/* Project Selector */}
+      <div className="mb-6">
+        <div className="flex items-center space-x-4">
+          <label htmlFor="project-select" className="text-sm font-medium text-gray-700">
+            Select Project:
+          </label>
+          <select
+            id="project-select"
+            value={selectedProject?.id || ''}
+            onChange={(e) => handleProjectSelect(e.target.value)}
+            className="block w-64 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+          >
+            <option value="">All Tasks (No Project)</option>
+            {projects && projects.map(project => (
+              <option key={project.id} value={project.id}>
+                {project.title}
+              </option>
+            ))}
+          </select>
+          
+          {selectedProject && (
+            <div className="flex items-center">
+              <span className="text-sm text-gray-600">
+                Project: <span className="font-medium">{selectedProject.title}</span>
+              </span>
+              <button 
+                onClick={() => setSelectedProject(null)}
+                className="ml-2 text-sm text-indigo-600 hover:text-indigo-800"
+              >
+                Clear
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+      
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">MeisterTask Board</h1>
-        <p className="text-gray-600">Visual task management with Kanban boards</p>
+        <h1 className="text-2xl font-bold text-gray-900">
+          {selectedProject ? `${selectedProject.title} Board` : 'MeisterTask Board'}
+        </h1>
+        <p className="text-gray-600">
+          {selectedProject ? `Tasks for project: ${selectedProject.title}` : 'Visual task management with Kanban boards'}
+        </p>
       </div>
       
       {/* Stats Overview */}
@@ -304,7 +397,7 @@ const Meistertask = () => {
       {/* Kanban Board */}
       <div className="overflow-x-auto">
         <div className="flex space-x-4 min-w-max">
-          {boardColumns.map(column => (
+          {displayColumns.map(column => (
             <div 
               key={column.id}
               className="flex-shrink-0 w-80"
@@ -315,7 +408,7 @@ const Meistertask = () => {
                 <div className="flex justify-between items-center">
                   <div>
                     <h3 className="font-semibold text-gray-800">{column.title}</h3>
-                    <span className="text-sm text-gray-600">({tasksByColumn[column.id].length})</span>
+                    <span className="text-sm text-gray-600">({tasksByColumn[column.id]?.length || 0})</span>
                   </div>
                   <div className="flex space-x-1">
                     <button 
@@ -329,7 +422,7 @@ const Meistertask = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
                     </button>
-                    {boardColumns.length > 1 && (
+                    {displayColumns.length > 1 && (
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
@@ -346,7 +439,7 @@ const Meistertask = () => {
                 </div>
               </div>
               <div className="bg-gray-50 rounded-b-lg min-h-96 p-4">
-                {tasksByColumn[column.id].map(task => (
+                {tasksByColumn[column.id] && tasksByColumn[column.id].map(task => (
                   <TaskCard 
                     key={task.id}
                     task={task}
@@ -357,7 +450,7 @@ const Meistertask = () => {
                   />
                 ))}
                 
-                {tasksByColumn[column.id].length === 0 && (
+                {(!tasksByColumn[column.id] || tasksByColumn[column.id].length === 0) && (
                   <div className="text-center py-8 text-gray-500">
                     <p>No tasks in this column</p>
                   </div>
@@ -383,6 +476,7 @@ const Meistertask = () => {
         <TaskForm 
           task={editingTask}
           employees={employees}
+          project={selectedProject}
           onClose={handleCloseTaskForm}
           onCreate={createTask}
           onUpdate={updateTask}
