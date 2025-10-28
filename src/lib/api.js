@@ -646,6 +646,47 @@ export const projectsAPI = {
   },
 };
 
+// Meistertask Projects API
+export const meistertaskProjectsAPI = {
+  getProjects: async () => {
+    return apiRequest('/meistertask-projects');
+  },
+
+  getProject: async (id) => {
+    return apiRequest(`/meistertask-projects/${id}`);
+  },
+
+  getProjectTasks: async (id) => {
+    return apiRequest(`/meistertask-projects/${id}/tasks`);
+  },
+
+  createProject: async (projectData) => {
+    return apiRequest('/meistertask-projects', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: projectData,
+    });
+  },
+
+  updateProject: async (id, projectData) => {
+    return apiRequest(`/meistertask-projects/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: projectData,
+    });
+  },
+
+  deleteProject: async (id) => {
+    return apiRequest(`/meistertask-projects/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
 // Notifications API
 export const notificationsAPI = {
   getNotifications: async (params = {}) => {

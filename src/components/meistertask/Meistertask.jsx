@@ -7,7 +7,7 @@ import TaskDetail from './TaskDetail';
 import ProjectForm from '../projects/ProjectForm';
 
 const Meistertask = () => {
-  const { tasks, projects, employees, currentUser, isAdmin, updateTask, createTask, addTaskState, updateProject } = useApp();
+  const { tasks, meistertaskProjects: projects, employees, currentUser, isAdmin, updateTask, createTask, addTaskState, updateMeistertaskProject: updateProject, createMeistertaskProject: createProject } = useApp();
   const { user } = useAuth();
   
   const [selectedProject, setSelectedProject] = useState(null);
@@ -313,12 +313,22 @@ const Meistertask = () => {
     setShowProjectForm(true);
   };
   
-  const handleProjectSaved = (project) => {
+  const handleProjectSaved = async (project) => {
     setShowProjectForm(false);
     setEditingProject(null);
     // If we were editing the currently selected project, update it
     if (selectedProject && selectedProject.id === project.id) {
       setSelectedProject(project);
+    }
+    
+    // Refresh the projects list
+    try {
+      const response = await fetch('/api/meistertask-projects');
+      const data = await response.json();
+      // Update the projects in the context
+      // This would typically be done through the context, but we'll need to add a refresh function
+    } catch (error) {
+      console.error('Error refreshing projects:', error);
     }
   };
   

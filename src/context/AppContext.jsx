@@ -20,6 +20,7 @@ export const AppProvider = ({ children }) => {
   const [departments, setDepartments] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [projects, setProjects] = useState([]); // Add projects state
+  const [meistertaskProjects, setMeistertaskProjects] = useState([]); // Add Meistertask projects state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
@@ -130,11 +131,12 @@ export const AppProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      const [tasksResponse, departmentsResponse, employeesResponse, projectsResponse] = await Promise.all([
+      const [tasksResponse, departmentsResponse, employeesResponse, projectsResponse, meistertaskProjectsResponse] = await Promise.all([
         tasksAPI.getTasks(),
         departmentsAPI.getDepartments(),
         employeesAPI.getEmployees(),
         projectsAPI.getProjects(), // Fetch projects
+        meistertaskProjectsAPI.getProjects(), // Fetch Meistertask projects
       ]);
 
       // Filter out any trashed tasks that might have slipped through
@@ -144,6 +146,7 @@ export const AppProvider = ({ children }) => {
       setDepartments(departmentsResponse.departments || []);
       setEmployees(employeesResponse.employees || []);
       setProjects(projectsResponse.projects || []); // Set projects
+      setMeistertaskProjects(meistertaskProjectsResponse.projects || []); // Set Meistertask projects
     } catch (error) {
       console.error('Error fetching data:', error);
       setError(error.message);
@@ -478,6 +481,61 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // Meistertask Project operations
+  const addMeistertaskProject = async (projectData) => {
+    try {
+      setError(null);
+      const response = await meistertaskProjectsAPI.createProject(projectData);
+      setMeistertaskProjects(prev => [...prev, response.project]);
+      return { project: response.project, error: null };
+    } catch (error) {
+      console.error('Error creating Meistertask project:', error);
+      setError(error.message);
+      return { project: null, error: error.message };
+    }
+  };
+
+  const createMeistertaskProject = async (projectData) => {
+    try {
+      setError(null);
+      const response = await meistertaskProjectsAPI.createProject(projectData);
+      setMeistertaskProjects(prev => [...prev, response.project]);
+      return { project: response.project, error: null };
+    } catch (error) {
+      console.error('Error creating Meistertask project:', error);
+      setError(error.message);
+      return { project: null, error: error.message };
+    }
+  };
+
+  const updateMeistertaskProject = async (projectId, projectData) => {
+    try {
+      setError(null);
+      const response = await meistertaskProjectsAPI.updateProject(projectId, projectData);
+      setMeistertaskProjects(prev => prev.map(project => 
+        project.id === projectId ? response.project : project
+      ));
+      return response.project;
+    } catch (error) {
+      console.error('Error updating Meistertask project:', error);
+      setError(error.message);
+      throw error;
+    }
+  };
+
+  const deleteMeistertaskProject = async (projectId) => {
+    try {
+      setError(null);
+      await meistertaskProjectsAPI.deleteProject(projectId);
+      setMeistertaskProjects(prev => prev.filter(project => project.id !== projectId));
+      return { error: null };
+    } catch (error) {
+      console.error('Error deleting Meistertask project:', error);
+      setError(error.message);
+      return { error: error.message };
+    }
+  };
+
   // Utility functions
   const getTasksByStatus = (status) => {
     // Exclude trashed tasks from all status filters
@@ -707,6 +765,7 @@ export const AppProvider = ({ children }) => {
     departments,
     employees,
     projects, // Add projects to context
+    meistertaskProjects, // Add Meistertask projects to context
     loading,
     error,
     
@@ -752,6 +811,12 @@ export const AppProvider = ({ children }) => {
     createProject,
     updateProject,
     deleteProject,
+    
+    // Meistertask Project operations
+    addMeistertaskProject,
+    createMeistertaskProject,
+    updateMeistertaskProject,
+    deleteMeistertaskProject,
     
     // Function aliases for compatibility
     addTask: createTask,
