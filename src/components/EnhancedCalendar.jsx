@@ -1294,28 +1294,6 @@ const EnhancedCalendar = ({ view: propView }) => {
                         ? isCurrentDay 
                           ? 'bg-indigo-600 text-white font-bold' 
                           : 'bg-indigo-100 text-indigo-800 font-medium' 
-                        : isCurrentDay
-                          ? 'bg-indigo-500 text-white font-bold'
-                          : day 
-                            ? 'text-gray-700' 
-                            : 'text-gray-300'
-                    }`}
-                    onClick={() => handleDayClick(day)}
-                  >
-                    {day || ''}
-                  </div>
-                )
-              })}
-            </div>
-            {/* Tasks for the selected day */}
-            {viewingTask && (
-              <TaskDetail task={viewingTask} closeTaskView={closeTaskView} openAttachment={openAttachment} />
-            )}
-          </div>
-        )}
-                      ? isCurrentDay 
-                        ? 'bg-indigo-600 text-white font-bold' 
-                        : 'bg-indigo-100 text-indigo-800 font-medium' 
                       : isCurrentDay
                         ? 'bg-indigo-500 text-white font-bold'
                         : day 
@@ -1334,32 +1312,16 @@ const EnhancedCalendar = ({ view: propView }) => {
                 >
                   {day || ''}
                 </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-              </div>
+              ))}
             </div>
-          )}
-        </div>
-
-        {/* Task Detail Section */}
-        {viewingTask && (
-          <TaskDetail 
-            task={viewingTask} 
-            closeTaskView={closeTaskView} 
-            openAttachment={openAttachment} 
-            getStatusColor={getStatusColor} 
-            getPriorityColor={getPriorityColor} 
-            handleTaskDelete={handleTaskDelete} 
-            handleTaskStatusChange={handleTaskStatusChange}
-          />
+          </div>
         )}
+      </ul>
+    </div>
+  )}
+</div>
 
-        {/* Delete Confirmation Dialog */}
-        {showDeleteDialog && (
-          <DeleteConfirmationDialog 
+{/* Task Detail Section */}
             task={taskToDelete} 
             handleDeleteConfirm={handleDeleteConfirm} 
             setShowDeleteDialog={setShowDeleteDialog}
@@ -1525,8 +1487,18 @@ const EnhancedCalendar = ({ view: propView }) => {
                         </div>
                       ))}
                     </div>
-                </h3>
-              </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
               
               {/* Calendar grid */}
               <div className="p-6">
@@ -1594,177 +1566,6 @@ const EnhancedCalendar = ({ view: propView }) => {
               </div>
             </div>
           )}
-                          ${isCurrentDay
-                            ? 'bg-blue-50 border-blue-200 ring-2 ring-blue-300'
-                            : 'border-gray-200'
-                          }
-                          ${dropTarget === day
-                            ? 'bg-blue-100 border-blue-400 ring-2 ring-blue-200'
-                            : ''
-                          }`}
-                        onClick={() => handleDayClick(day)}
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          if (day) {
-                            // Check what type of item is being dragged
-                            const data = e.dataTransfer.getData('text/plain');
-                            if (data) {
-                              try {
-                                const parsedData = JSON.parse(data);
-                                if (parsedData.source === 'task') {
-                                  // Moving a task between days
-                                  e.dataTransfer.dropEffect = 'move';
-                                } else if (parsedData.source === 'todo') {
-                                  // Moving a todo to a day
-                                  e.dataTransfer.dropEffect = dragAction === 'copy' ? 'copy' : 'move';
-                                }
-                              } catch (error) {
-                                // Not a valid JSON, default to move
-                                e.dataTransfer.dropEffect = 'move';
-                              }
-                            } else {
-                              // Default to move for tasks
-                              e.dataTransfer.dropEffect = 'move';
-                            }
-                            setDropTarget(day);
-                          }
-                        }}
-                        onDragLeave={handleDragLeave}
-                        onDrop={(e) => day && handleDrop(e, day)}
-                        onTouchMove={(e) => {
-                          // Handle touch move for mobile drag between days
-                          if (draggedTask) {
-                            e.preventDefault();
-                            const touch = e.touches[0];
-                            const elementUnderTouch = document.elementFromPoint(touch.clientX, touch.clientY);
-                            if (elementUnderTouch && elementUnderTouch.classList.contains('calendar-day-cell') && elementUnderTouch.dataset.day) {
-                              const day = parseInt(elementUnderTouch.dataset.day);
-                              if (day && day !== dropTarget) {
-                                // Update drop target
-                                setDropTarget(day);
-                                
-                                // Highlight the day cell
-                                document.querySelectorAll('.calendar-day-cell').forEach(cell => {
-                                  cell.classList.remove('bg-blue-100', 'border-blue-400', 'ring-2', 'ring-blue-200');
-                                });
-                                elementUnderTouch.classList.add('bg-blue-100', 'border-blue-400', 'ring-2', 'ring-blue-200');
-                              }
-                            }
-                          }
-                        }}
-                      >
-                        {day && isDropTarget && (
-                          <div className="absolute top-1 right-1 bg-blue-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                            {dragAction === 'copy' ? 'C' : 'M'}
-                          </div>
-                        )}
-                        {day && (
-                          <>
-                            <div className={`text-sm font-medium mb-1 ${
-                              isCurrentDay ? 'text-blue-700 font-bold' : 'text-gray-900'
-                            }`}>
-                              {day}
-                            </div>
-                            <div className="space-y-1 overflow-y-auto max-h-32 sm:max-h-36 md:max-h-44">
-                              {getTasksForDay(day).slice(0, 10).map(task => (
-                                <div 
-                                  key={task.id}
-                                  className="relative group"
-                                >
-                                  <div
-                                    draggable={isAdmin}
-                                    onDragStart={(e) => isAdmin && handleDragStart(e, task)}
-                                    onDragEnd={handleDragEnd}
-                                    onTouchStart={(e) => {
-                                      if (isAdmin) {
-                                        // For mobile, we'll use long press to initiate drag
-                                        e.currentTarget.longPressTimer = setTimeout(() => {
-                                          initMobileDrag(e, task, 'task');
-                                        }, 500); // 500ms long press
-                                      }
-                                    }}
-                                    onTouchMove={(e) => {
-                                      // Cancel long press if finger moves
-                                      if (e.currentTarget.longPressTimer) {
-                                        clearTimeout(e.currentTarget.longPressTimer);
-                                        delete e.currentTarget.longPressTimer;
-                                      }
-                                    }}
-                                    onTouchEnd={(e) => {
-                                      // Cancel long press timer
-                                      if (e.currentTarget.longPressTimer) {
-                                        clearTimeout(e.currentTarget.longPressTimer);
-                                        delete e.currentTarget.longPressTimer;
-                                      }
-                                    }}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      openTaskView(task);
-                                    }}
-                                    className={`text-xs p-2 rounded truncate cursor-pointer hover:bg-opacity-80 ${
-                                      task.status === 'completed' 
-                                        ? 'bg-green-100 text-green-800 line-through' 
-                                        : task.priority === 'high' || task.priority === 'urgent'
-                                          ? 'bg-red-100 text-red-800'
-                                          : 'bg-blue-100 text-blue-800'
-                                    } ${
-                                      isAdmin ? 'cursor-move touch-manipulation' : 'cursor-pointer'
-                                    } ${
-                                      draggedTask && draggedTask.id === task.id ? 'opacity-50 ring-2 ring-blue-500' : ''
-                                    }`}
-                                  >
-                                    {task.title}
-                                    {isAdmin && (
-                                      <span className="ml-1 text-xs opacity-70">⋮⋮</span>
-                                    )}
-                                  </div>
-                                  {isAdmin && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleTaskDelete(task);
-                                      }}
-                                      className="absolute top-0 right-0 p-1 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                                      title="Delete task"
-                                    >
-                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                      </svg>
-                                    </button>
-                                  )}
-                                  {isAdmin && (
-                                    <select
-                                      value={task.status}
-                                      onChange={(e) => {
-                                        e.stopPropagation();
-                                        handleTaskStatusChange(task.id, e.target.value);
-                                      }}
-                                      className="absolute bottom-0 right-0 w-6 h-4 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <option value="planned">Planned</option>
-                                      <option value="in-progress">In Progress</option>
-                                      <option value="completed">Completed</option>
-                                    </select>
-                                  )}
-                                </div>
-                              ))}
-                              {getTasksForDay(day).length > 10 && (
-                                <div className="text-xs text-gray-500">
-                                  +{getTasksForDay(day).length - 10} more
-                                </div>
-                              )}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    )
-
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Todo List Section */}
@@ -1777,6 +1578,6313 @@ const EnhancedCalendar = ({ view: propView }) => {
                 className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
               >
                 {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={prevMonth}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setSelectedMonth(selectedMonth - 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={() => setSelectedMonth(selectedMonth + 1)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay ? 'bg-indigo-500 text-white font-bold' : ''}
+                    ${isDropTarget ? 'bg-indigo-100' : ''}
+                  `}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                >
+                  <div className="text-center text-sm font-medium">
+                    {day || ''}
+                  </div>
+                  {day && getTasksForDay(day).map(task => (
+                    <div
+                      key={task.id}
+                      className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                        ${getStatusColor(task.status)}
+                      `}
+                      draggable={isAdmin}
+                      onDragStart={(e) => handleDragStart(e, task)}
+                      onClick={() => openTaskView(task)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                          <span className="task-title">{task.title}</span>
+                        </div>
+                        <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                      </div>
+                      <div className="task-description text-sm text-gray-600">
+                        {task.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Todo List Section */}
+        <div className="w-full lg:w-80">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Todo List</h3>
+              <button
+                onClick={() => setShowTodoForm(!showTodoForm)}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+              >
+                {showTodoForm ? 'Cancel' : 'Add Todo'}
+              </button>
+            </div>
+            {showTodoForm && (
+              <form onSubmit={handleTodoSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="todoTitle" className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="todoAttachments" className="block text-sm font-medium text-gray-700">Attachments</label>
+                  <input
+                    type="file"
+                    id="todoAttachments"
+                    multiple
+                    onChange={handleAttachmentsChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <ul className="mt-4">
+              {todos.map(todo => (
+                <li key={todo.id} className="bg-white rounded-lg shadow p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodoCompletion(todo.id)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className={`ml-2 text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                        {todo.title}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="px-2 py-1 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {todo.description && (
+                    <p className="mt-1 text-sm text-gray-700">{todo.description}</p>
+                  )}
+                  {todo.attachments.length > 0 && (
+                    <div className="mt-1">
+                      {todo.attachments.map((attachment, index) => (
+                        <div key={index} className="mt-1 flex items-center space-x-2">
+                          <span className="text-sm text-gray-700">{attachment.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(attachment)}
+                            className="px-2 py-1 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+                          ${isDropTarget ? 'bg-indigo-100' : ''}
+                        `}
+                        onClick={() => handleDayClick(day)}
+                        onDragOver={(e) => handleDragOver(e, day)}
+                        onDragLeave={handleDragLeave}
+                        onDrop={(e) => handleDrop(e, day)}
+                      >
+                        <div className="text-center text-sm font-medium">
+                          {day || ''}
+                        </div>
+                        {day && getTasksForDay(day).map(task => (
+                          <div
+                            key={task.id}
+                            className={`task-item mt-1 p-2 rounded-lg bg-gray-100 text-gray-800 cursor-pointer hover:bg-gray-200
+                              ${getStatusColor(task.status)}
+                            `}
+                            draggable={isAdmin}
+                            onDragStart={(e) => handleDragStart(e, task)}
+                            onClick={() => openTaskView(task)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <div className={`status-indicator w-2 h-2 rounded-full mr-2 ${getStatusColor(task.status)}`}></div>
+                                <span className="task-title">{task.title}</span>
+                              </div>
+                              <div className="priority-indicator w-2 h-2 rounded-full" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
+                            </div>
+                            <div className="task-description text-sm text-gray-600">
+                              {task.description}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Calendar</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={prevMonth}
+              className="px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              &lt; Prev
+            </button>
+            <button
+              onClick={nextMonth}
+              className="px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              Next &gt;
+            </button>
+          </div>
+        </div>
+        
+        {/* Calendar grid */}
+        <div className="p-6">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 md:py-2">
+                <span className="hidden sm:inline">{day.substring(0, 3)}</span>
+                <span className="sm:hidden">{day.substring(0, 1)}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar days - wider on mobile for better readability */}
+          <div className="grid grid-cols-7 gap-1">
+            {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
+              const isCurrentDay = selectedYear === today.getFullYear() && 
+                                   selectedMonth === today.getMonth() && 
+                                   day === today.getDate();
+              const isDropTarget = day === dropTarget;
+
+              return (
+                <div
+                  key={index}
+                  data-day={day}
+                  className={`calendar-day-cell min-h-32 sm:min-h-36 md:min-h-40 p-2 border rounded-lg relative
+                    ${day ? 'cursor-pointer hover:bg-gray-50' : ''}
+                    ${isCurrentDay
+                      ? 'bg-blue-50 border-blue-200 ring-2 ring-blue-300'
+                      : 'border-gray-200'
+                    }
+                    ${dropTarget === day
+                      ? 'bg-blue-100 border-blue-400 ring-2 ring-blue-200'
+                      : ''
+                    }`}
+                  onClick={() => handleDayClick(day)}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (day) {
+                      // Check what type of item is being dragged
+                      const data = e.dataTransfer.getData('text/plain');
+                      if (data) {
+                        try {
+                          const parsedData = JSON.parse(data);
+                          if (parsedData.source === 'task') {
+                            // Moving a task between days
+                            e.dataTransfer.dropEffect = 'move';
+                          } else if (parsedData.source === 'todo') {
+                            // Moving a todo to a day
+                            e.dataTransfer.dropEffect = dragAction === 'copy' ? 'copy' : 'move';
+                          }
+                        } catch (error) {
+                          // Not a valid JSON, default to move
+                          e.dataTransfer.dropEffect = 'move';
+                        }
+                      } else {
+                        // Default to move for tasks
+                        e.dataTransfer.dropEffect = 'move';
+                      }
+                      setDropTarget(day);
+                    }
+                  }}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => day && handleDrop(e, day)}
+                  onTouchMove={(e) => {
+                    // Handle touch move for mobile drag between days
+                    if (draggedTask) {
+                      e.preventDefault();
+                      const touch = e.touches[0];
+                      const elementUnderTouch = document.elementFromPoint(touch.clientX, touch.clientY);
+                      if (elementUnderTouch && elementUnderTouch.classList.contains('calendar-day-cell') && elementUnderTouch.dataset.day) {
+                        const day = parseInt(elementUnderTouch.dataset.day);
+                        if (day && day !== dropTarget) {
+                          // Update drop target
+                          setDropTarget(day);
+                          
+                          // Highlight the day cell
+                          document.querySelectorAll('.calendar-day-cell').forEach(cell => {
+                            cell.classList.remove('bg-blue-100', 'border-blue-400', 'ring-2', 'ring-blue-200');
+                          });
+                          elementUnderTouch.classList.add('bg-blue-100', 'border-blue-400', 'ring-2', 'ring-blue-200');
+                        }
+                      }
+                    }
+                  }}
+                >
+                  {day && isDropTarget && (
+                    <div className="absolute top-1 right-1 bg-blue-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                      {dragAction === 'copy' ? 'C' : 'M'}
+                    </div>
+                  )}
+                  {day && (
+                    <>
+                      <div className={`text-sm font-medium mb-1 ${
+                        isCurrentDay ? 'text-blue-700 font-bold' : 'text-gray-900'
+                      }`}>
+                        {day}
+                      </div>
+                      <div className="space-y-1 overflow-y-auto max-h-32 sm:max-h-36 md:max-h-44">
+                        {getTasksForDay(day).slice(0, 10).map(task => (
+                          <div 
+                            key={task.id}
+                            className="relative group"
+                          >
+                            <div
+                              draggable={isAdmin}
+                              onDragStart={(e) => isAdmin && handleDragStart(e, task)}
+                              onDragEnd={handleDragEnd}
+                              onTouchStart={(e) => {
+                                if (isAdmin) {
+                                  // For mobile, we'll use long press to initiate drag
+                                  e.currentTarget.longPressTimer = setTimeout(() => {
+                                    initMobileDrag(e, task, 'task');
+                                  }, 500); // 500ms long press
+                                }
+                              }}
+                              onTouchMove={(e) => {
+                                // Cancel long press if finger moves
+                                if (e.currentTarget.longPressTimer) {
+                                  clearTimeout(e.currentTarget.longPressTimer);
+                                  delete e.currentTarget.longPressTimer;
+                                }
+                              }}
+                              onTouchEnd={(e) => {
+                                // Cancel long press timer
+                                if (e.currentTarget.longPressTimer) {
+                                  clearTimeout(e.currentTarget.longPressTimer);
+                                  delete e.currentTarget.longPressTimer;
+                                }
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openTaskView(task);
+                              }}
+                              className={`text-xs p-2 rounded truncate cursor-pointer hover:bg-opacity-80 ${
+                                task.status === 'completed' 
+                                  ? 'bg-green-100 text-green-800 line-through' 
+                                  : task.priority === 'high' || task.priority === 'urgent'
+                                    ? 'bg-red-100 text-red-800'
+                                    : 'bg-blue-100 text-blue-800'
+                              } ${
+                                isAdmin ? 'cursor-move touch-manipulation' : 'cursor-pointer'
+                              } ${
+                                draggedTask && draggedTask.id === task.id ? 'opacity-50 ring-2 ring-blue-500' : ''
+                              }`}
+                            >
+                              {task.title}
+                              {isAdmin && (
+                                <span className="ml-1 text-xs opacity-70">⋮⋮</span>
+                              )}
+                            </div>
+                            {isAdmin && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleTaskDelete(task);
+                                }}
+                                className="absolute top-0 right-0 p-1 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                                title="Delete task"
+                              >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            )}
+                            {isAdmin && (
+                              <select
+                                value={task.status}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  handleTaskStatusChange(task.id, e.target.value);
+                                }}
+                                className="absolute bottom-0 right-0 w-6 h-4 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <option value="planned">Planned</option>
+                                <option value="in-progress">In Progress</option>
+                                <option value="completed">Completed</option>
+                              </select>
+                            )}
+                          </div>
+                        ))}
+                        {getTasksForDay(day).length > 10 && (
+                          <div className="text-xs text-gray-500">
+                            +{getTasksForDay(day).length - 10} more
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )
+
+            })}
+          </div>
+            {showTodoForm && (
+              <form onSubmit={handleAddTodo}>
+                <div className="mb-4">
+                  <label
+                    htmlFor="todoTitle"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    id="todoTitle"
+                    value={todoTitle}
+                    onChange={(e) => setTodoTitle(e.target.value)}
+                    className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                    required
+                  />
+                </div>
+                <div className="mb-4">
+                  <label
+                    htmlFor="todoDescription"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Description
+                  </label>
+                  <textarea
+                    id="todoDescription"
+                    value={todoDescription}
+                    onChange={(e) => setTodoDescription(e.target.value)}
+                    className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                >
+                  Add Todo
+                </button>
+              </form>
+            )}
+            <div className="mt-4">
+              {todos.map((todo, index) => (
+                <div
+                  key={index}
+                  className="bg-gray-100 p-4 mb-2 rounded-lg flex justify-between items-center"
+                >
+                  <div>
+                    <h4 className="text-md font-medium text-gray-900">
+                      {todo.title}
+                    </h4>
+                    <p className="text-sm text-gray-600">{todo.description}</p>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteTodo(index)}
+                    className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm"
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )}
+</div>
+
+{/* Task Detail Section */}
               </button>
             </div>
             
