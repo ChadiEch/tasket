@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { projectsAPI } from '../../lib/api';
+import { projectsAPI, meistertaskProjectsAPI } from '../../lib/api';
 
-const ProjectForm = ({ project, onSaved, onCancelled }) => {
+const ProjectForm = ({ project, onSaved, onCancelled, isMeistertaskProject = false }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -76,12 +76,15 @@ const ProjectForm = ({ project, onSaved, onCancelled }) => {
     try {
       setLoading(true);
       
+      // Use the appropriate API based on the project type
+      const api = isMeistertaskProject ? meistertaskProjectsAPI : projectsAPI;
+      
       if (project) {
         // Update existing project
-        await projectsAPI.updateProject(project.id, formData);
+        await api.updateProject(project.id, formData);
       } else {
         // Create new project
-        await projectsAPI.createProject(formData);
+        await api.createProject(formData);
       }
       
       onSaved();
@@ -108,7 +111,7 @@ const ProjectForm = ({ project, onSaved, onCancelled }) => {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">
-          {project ? 'Edit Project' : 'Create New Project'}
+          {project ? 'Edit Project' : isMeistertaskProject ? 'Create New Meistertask Project' : 'Create New Project'}
         </h1>
         <button
           onClick={onCancelled}
@@ -230,7 +233,7 @@ const ProjectForm = ({ project, onSaved, onCancelled }) => {
                 Saving...
               </>
             ) : (
-              project ? 'Update Project' : 'Create Project'
+              project ? 'Update Project' : isMeistertaskProject ? 'Create Meistertask Project' : 'Create Project'
             )}
           </button>
         </div>

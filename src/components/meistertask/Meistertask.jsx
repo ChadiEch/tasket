@@ -320,16 +320,6 @@ const Meistertask = () => {
     if (selectedProject && selectedProject.id === project.id) {
       setSelectedProject(project);
     }
-    
-    // Refresh the projects list
-    try {
-      const response = await fetch('/api/meistertask-projects');
-      const data = await response.json();
-      // Update the projects in the context
-      // This would typically be done through the context, but we'll need to add a refresh function
-    } catch (error) {
-      console.error('Error refreshing projects:', error);
-    }
   };
   
   const handleProjectCancelled = () => {
@@ -349,6 +339,7 @@ const Meistertask = () => {
           project={editingProject}
           onSaved={handleProjectSaved}
           onCancelled={handleProjectCancelled}
+          isMeistertaskProject={true} // Pass flag to indicate this is for Meistertask
         />
       )}
       
