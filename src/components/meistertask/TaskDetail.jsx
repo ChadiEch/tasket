@@ -19,10 +19,11 @@ const TaskDetail = ({ task, onClose, onEdit }) => {
   };
 
   const statusColors = {
-    planned: 'bg-gray-100 text-gray-800',
-    'in-progress': 'bg-blue-100 text-blue-800',
-    completed: 'bg-green-100 text-green-800',
-    trashed: 'bg-red-100 text-red-800'
+    backlog: 'bg-gray-100 text-gray-800',
+    todo: 'bg-blue-100 text-blue-800',
+    'in-progress': 'bg-yellow-100 text-yellow-800',
+    review: 'bg-purple-100 text-purple-800',
+    done: 'bg-green-100 text-green-800'
   };
 
   return (

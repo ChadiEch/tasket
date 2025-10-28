@@ -5,7 +5,7 @@ import TaskCard from './TaskCard';
 import TaskForm from './TaskForm';
 import TaskDetail from './TaskDetail';
 
-const Meistertask = () => {
+const MeisterTaskBoard = () => {
   const { tasks, projects, employees, currentUser, isAdmin, updateTask, createTask } = useApp();
   const { user } = useAuth();
   
@@ -207,7 +207,7 @@ const Meistertask = () => {
             className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           >
             <option value="">All Assignees</option>
-            {employees && employees.map(employee => (
+            {employees.map(employee => (
               <option key={employee.id} value={employee.id}>
                 {employee.name}
               </option>
@@ -296,4 +296,4 @@ const Meistertask = () => {
   );
 };
 
-export default Meistertask;
+export default MeisterTaskBoard;
