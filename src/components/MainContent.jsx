@@ -6,7 +6,7 @@ import DepartmentList from './departments/DepartmentList'
 import EmployeeList from './employees/EmployeeList'
 import EmployeeDetail from './employees/EmployeeDetail'
 // import Calendar from './Calendar'  // Comment out the old calendar
-import EnhancedCalendar from './EnhancedCalendar'  // Use the new enhanced calendar
+import EnhancedCalendar from './EnhancedCalendar.rebuilt'  // Use our rebuilt enhanced calendar
 import DayView from './DayView'
 import Reports from './Reports'
 import Profile from './Profile'
@@ -18,6 +18,8 @@ import ProjectTasks from './projects/ProjectTasks'
 import NotificationPage from './NotificationPage'
 import TrashPage from './TrashPage'
 import Meistertask from './meistertask/Meistertask'
+
+// Remove the temporary placeholder for EnhancedCalendar since we're using the real component now
 
 const MainContent = () => {
   const { currentView, searchTerm, navigateTo, selectedProject } = useApp()
