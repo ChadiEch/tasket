@@ -10,6 +10,8 @@ const ProjectTasks = () => {
   const [error, setError] = useState(null);
   const [viewingPhotos, setViewingPhotos] = useState(null); // Added state for photo viewing
   const [photoIndex, setPhotoIndex] = useState(0); // Added state for photo index
+  const [startDate, setStartDate] = useState(''); // Added state for start date filter
+  const [endDate, setEndDate] = useState(''); // Added state for end date filter
 
   useEffect(() => {
     if (project) {
@@ -20,7 +22,13 @@ const ProjectTasks = () => {
   const fetchProjectTasks = async () => {
     try {
       setLoading(true);
-      const response = await projectsAPI.getProjectTasks(project.id);
+      // Pass date range parameters if they are set
+      const params = {};
+      if (startDate && endDate) {
+        params.startDate = startDate;
+        params.endDate = endDate;
+      }
+      const response = await projectsAPI.getProjectTasks(project.id, params);
       setTasks(response.tasks || []);
     } catch (err) {
       setError(err.message);
@@ -31,6 +39,19 @@ const ProjectTasks = () => {
 
   const handleBack = () => {
     navigateTo('projects');
+  };
+
+  const handleFilter = () => {
+    // Validate that both dates are provided
+    if (startDate && endDate) {
+      fetchProjectTasks();
+    }
+  };
+
+  const handleClearFilter = () => {
+    setStartDate('');
+    setEndDate('');
+    fetchProjectTasks();
   };
 
   const formatDate = (dateString) => {
@@ -231,14 +252,60 @@ const ProjectTasks = () => {
         </div>
       </div>
 
+      {/* Date Range Filter */}
+      <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Filter Tasks by Date Range</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">
+              Start Date
+            </label>
+            <input
+              type="date"
+              id="startDate"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-1">
+              End Date
+            </label>
+            <input
+              type="date"
+              id="endDate"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+          <div className="flex items-end space-x-2">
+            <button
+              onClick={handleFilter}
+              disabled={!startDate || !endDate}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
+            >
+              Apply Filter
+            </button>
+            <button
+              onClick={handleClearFilter}
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-medium text-gray-900">Tasks in this Project</h2>
           <p className="mt-1 text-sm text-gray-500">
-            Showing tasks with due dates between {formatDate(project.start_date)} and {formatDate(project.end_date)}
-            {currentUser && currentUser.role !== 'admin' && (
-              <span className="block mt-1">Filtered to show only tasks assigned to you</span>
-            )}
+            {startDate && endDate 
+              ? `Showing tasks created between ${formatDate(startDate)} and ${formatDate(endDate)}`
+              : `Showing all tasks in this project`
+            }
           </p>
         </div>
 
@@ -258,10 +325,12 @@ const ProjectTasks = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
             <h3 className="mt-2 text-lg font-medium text-gray-900">No tasks found</h3>
-            <p className="mt-1 text-gray-500">There are no tasks within this project's date range.</p>
-            {currentUser && currentUser.role !== 'admin' && (
-              <p className="mt-1 text-gray-500">Note: As an employee, you only see tasks assigned to you.</p>
-            )}
+            <p className="mt-1 text-gray-500">
+              {startDate && endDate 
+                ? `There are no tasks created between ${formatDate(startDate)} and ${formatDate(endDate)}.`
+                : "There are no tasks in this project."
+              }
+            </p>
           </div>
         ) : (
           <ul className="divide-y divide-gray-200">
@@ -287,8 +356,14 @@ const ProjectTasks = () => {
                     
                     <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
                       <div className="text-sm text-gray-500">
-                        <span className="font-medium">Due Date:</span> {task.due_date ? formatDate(task.due_date) : 'No due date'}
+                        <span className="font-medium">Created:</span> {formatDateTime(task.created_at)}
                       </div>
+                      
+                      {task.due_date && (
+                        <div className="text-sm text-gray-500">
+                          <span className="font-medium">Due Date:</span> {formatDate(task.due_date)}
+                        </div>
+                      )}
                       
                       {task.start_date && (
                         <div className="text-sm text-gray-500">
@@ -327,6 +402,12 @@ const ProjectTasks = () => {
                       {task.department && (
                         <div className="text-sm text-gray-500">
                           <span className="font-medium">Department:</span> {task.department.name}
+                        </div>
+                      )}
+                      
+                      {task.project && (
+                        <div className="text-sm text-gray-500">
+                          <span className="font-medium">Project:</span> {task.project.title}
                         </div>
                       )}
                     </div>

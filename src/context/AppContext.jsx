@@ -453,6 +453,17 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // Task state operations (for direct state updates without API calls)
+  const updateTaskState = (updatedTask) => {
+    setTasks(prev => prev.map(task => 
+      task.id === updatedTask.id ? { ...task, ...updatedTask } : task
+    ));
+  };
+
+  const addTaskState = (newTask) => {
+    setTasks(prev => [newTask, ...prev]);
+  };
+
   // Utility functions
   const getTasksByStatus = (status) => {
     // Exclude trashed tasks from all status filters

@@ -337,8 +337,10 @@ export const projectsAPI = {
     return apiRequest(`/projects/${id}`);
   },
 
-  getProjectTasks: async (id) => {
-    return apiRequest(`/projects/${id}/tasks`);
+  getProjectTasks: async (id, params = {}) => {
+    const queryParams = new URLSearchParams(params);
+    const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+    return apiRequest(`/projects/${id}/tasks${queryString}`);
   },
 
   createProject: async (projectData) => {

@@ -51,7 +51,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
     department_id: task?.department_id || currentUser?.department_id,
     attachments: task?.attachments || [],
     project_id: task?.project_id || '', // Add project_id field
-    addToMeistertask: !!task?.project_id, // Add addToMeistertask field
+    addToProject: !!task?.project_id, // Add addToProject field
     // For admins creating new tasks, use the selected date at midnight; for editing or non-admins, use the task's created_at
     created_at: task?.created_at ? getLocalDateTimeString(new Date(task.created_at)) : (isAdmin && !isEditing ? getDateTimeForSelectedDate(date) : getLocalDateTimeString())
   });
@@ -84,7 +84,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
         department_id: task.department_id || currentUser?.department_id,
         attachments: task.attachments || [],
         project_id: task.project_id || '', // Add project_id field
-        addToMeistertask: !!task?.project_id, // Add addToMeistertask field
+        addToProject: !!task?.project_id, // Add addToProject field
         // For admins editing tasks, use the task's created_at; for new tasks, use selected date at midnight
         created_at: task.created_at ? getLocalDateTimeString(new Date(task.created_at)) : (isAdmin && !isEditing ? getDateTimeForSelectedDate(date) : getLocalDateTimeString())
       });
@@ -236,8 +236,8 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
         estimated_hours: formData.estimated_hours !== undefined && formData.estimated_hours !== null && formData.estimated_hours !== '' ? parseFloat(formData.estimated_hours) : 1.00 // Ensure proper float conversion
       };
     
-      // If addToMeistertask is false, remove project_id
-      if (!formData.addToMeistertask) {
+      // If addToProject is false, remove project_id
+      if (!formData.addToProject) {
         delete taskData.project_id;
       }
     
@@ -516,24 +516,24 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                 </label>
                 <div className="flex items-center">
                   <input
-                    id="addToMeistertask"
-                    name="addToMeistertask"
+                    id="addToProject"
+                    name="addToProject"
                     type="checkbox"
-                    checked={formData.addToMeistertask}
+                    checked={formData.addToProject}
                     onChange={handleChange}
                     disabled={!canEdit || isUploading}
                     className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 mr-2"
                   />
-                  <label htmlFor="addToMeistertask" className="block text-sm text-gray-900 mr-2">
-                    Add to Meistertask
+                  <label htmlFor="addToProject" className="block text-sm text-gray-900 mr-2">
+                    Add to Project
                   </label>
                   <select
                     id="project_id"
                     name="project_id"
                     value={formData.project_id}
                     onChange={handleChange}
-                    disabled={!canEdit || isUploading || !formData.addToMeistertask}
-                    className={`w-full p-2 border rounded-md ${errors.project_id ? 'border-red-500' : 'border-gray-300'} ${!canEdit || isUploading || !formData.addToMeistertask ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                    disabled={!canEdit || isUploading || !formData.addToProject}
+                    className={`w-full p-2 border rounded-md ${errors.project_id ? 'border-red-500' : 'border-gray-300'} ${!canEdit || isUploading || !formData.addToProject ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                   >
                     <option value="">Select a project</option>
                     {projects && projects.map(project => (
