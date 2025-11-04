@@ -9,31 +9,23 @@ const TaskCard = ({ task, employees, onEdit, onView, onDragStart }) => {
     urgent: 'bg-red-100 text-red-800'
   };
 
-  const statusColors = {
-    backlog: 'bg-gray-100 text-gray-800',
-    todo: 'bg-blue-100 text-blue-800',
-    'in-progress': 'bg-yellow-100 text-yellow-800',
-    review: 'bg-purple-100 text-purple-800',
-    done: 'bg-green-100 text-green-800'
-  };
-
   const assignee = employees.find(emp => emp.id === task.assigned_to);
 
   return (
     <div 
-      className="bg-white rounded-lg shadow mb-3 p-3 cursor-pointer hover:shadow-md transition-shadow"
+      className="bg-white rounded shadow-sm mb-3 p-3 cursor-pointer hover:shadow transition-shadow border border-gray-200 group"
       draggable
       onDragStart={(e) => onDragStart(e, task)}
       onClick={() => onView(task)}
     >
       <div className="flex justify-between items-start">
-        <h4 className="font-medium text-gray-900 text-sm truncate">{task.title}</h4>
+        <h4 className="font-medium text-gray-900 text-sm">{task.title}</h4>
         <button
           onClick={(e) => {
             e.stopPropagation();
             onEdit(task);
           }}
-          className="text-gray-400 hover:text-gray-600 ml-2"
+          className="text-gray-400 hover:text-gray-600 ml-2 opacity-0 group-hover:opacity-100 transition-opacity"
         >
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
             <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
@@ -50,9 +42,6 @@ const TaskCard = ({ task, employees, onEdit, onView, onDragStart }) => {
       <div className="mt-2 flex flex-wrap gap-1">
         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${priorityColors[task.priority] || 'bg-gray-100'}`}>
           {task.priority}
-        </span>
-        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[task.status] || 'bg-gray-100'}`}>
-          {task.status}
         </span>
       </div>
       
@@ -76,42 +65,6 @@ const TaskCard = ({ task, employees, onEdit, onView, onDragStart }) => {
           </div>
         )}
       </div>
-      
-      {/* Image thumbnails */}
-      {task.attachments && task.attachments.filter(att => att.type === 'image').length > 0 && (
-        <div className="mt-2 grid grid-cols-3 gap-1">
-          {task.attachments
-            .filter(att => att.type === 'image')
-            .slice(0, 3) // Show only first 3 images
-            .map((attachment, index) => (
-              <div key={index} className="relative">
-                <img 
-                  src={attachment.url} 
-                  alt="Attachment preview" 
-                  className="h-16 w-full object-cover rounded"
-                />
-                {index === 2 && task.attachments.filter(att => att.type === 'image').length > 3 && (
-                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded">
-                    <span className="text-white text-xs font-bold">
-                      +{task.attachments.filter(att => att.type === 'image').length - 3}
-                    </span>
-                  </div>
-                )}
-              </div>
-            ))
-          }
-        </div>
-      )}
-      
-      {/* Attachment count */}
-      {task.attachments && task.attachments.length > 0 && (
-        <div className="mt-2 flex items-center text-xs text-gray-500">
-          <svg className="flex-shrink-0 mr-1 h-4 w-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clipRule="evenodd" />
-          </svg>
-          <span>{task.attachments.length} attachment(s)</span>
-        </div>
-      )}
     </div>
   );
 };
