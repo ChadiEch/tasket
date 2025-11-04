@@ -11,7 +11,7 @@ const TaskForm = ({ task, onClose, project, onSaved }) => {
     status: 'open',
     priority: 'medium',
     assigned_to: '',
-    project_id: project?.id || '',
+    meistertask_project_id: project?.id || '',
     due_date: ''
   });
   
@@ -25,13 +25,13 @@ const TaskForm = ({ task, onClose, project, onSaved }) => {
         status: task.status || 'open',
         priority: task.priority || 'medium',
         assigned_to: task.assigned_to || '',
-        project_id: task.project_id || project?.id || '',
+        meistertask_project_id: task.meistertask_project_id || project?.id || '',
         due_date: task.due_date ? format(new Date(task.due_date), 'yyyy-MM-dd') : ''
       });
     } else if (project) {
       setFormData(prev => ({
         ...prev,
-        project_id: project.id
+        meistertask_project_id: project.id
       }));
     }
   }, [task, project]);
@@ -72,8 +72,11 @@ const TaskForm = ({ task, onClose, project, onSaved }) => {
     }
     
     try {
+      // Rename the field to match the backend
+      const { meistertask_project_id, ...rest } = formData;
       const taskData = {
-        ...formData,
+        ...rest,
+        meistertask_project_id: meistertask_project_id,
         due_date: formData.due_date ? new Date(formData.due_date).toISOString() : null
       };
       
