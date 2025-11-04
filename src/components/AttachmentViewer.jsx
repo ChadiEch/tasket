@@ -95,24 +95,23 @@ const AttachmentViewer = ({ attachments, initialIndex = 0, onClose }) => {
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '';
       console.log('API Base URL from env:', apiBaseUrl);
       
-      // If we don't have a base URL from env, construct it from window.location
-      if (!apiBaseUrl) {
-        // Use the current origin but remove any /api path
-        const origin = window.location.origin;
-        const baseUrl = origin.replace(/\/api$/, '');
-        console.log('Constructed base URL from origin:', baseUrl);
-        const finalUrl = `${baseUrl}${attachment.url}`;
+      // If we have a base URL from env, use it
+      if (apiBaseUrl) {
+        // Remove /api from the URL if present to get the server root
+        const serverBaseUrl = apiBaseUrl.replace('/api', '');
+        // Ensure we don't have double slashes
+        const cleanBaseUrl = serverBaseUrl.endsWith('/') ? serverBaseUrl.slice(0, -1) : serverBaseUrl;
+        const cleanAttachmentUrl = attachment.url.startsWith('/') ? attachment.url : `/${attachment.url}`;
+        const finalUrl = `${cleanBaseUrl}${cleanAttachmentUrl}`;
         console.log('Final URL:', finalUrl);
         return finalUrl;
       }
       
-      // Remove /api from the URL if present to get the server root
-      const serverBaseUrl = apiBaseUrl.replace(/\/api$/, '');
-      console.log('Server base URL:', serverBaseUrl);
-      // Ensure we don't have double slashes
-      const cleanBaseUrl = serverBaseUrl.endsWith('/') ? serverBaseUrl.slice(0, -1) : serverBaseUrl;
-      const cleanAttachmentUrl = attachment.url.startsWith('/') ? attachment.url : `/${attachment.url}`;
-      const finalUrl = `${cleanBaseUrl}${cleanAttachmentUrl}`;
+      // If we don't have a base URL from env, construct it from window.location
+      const origin = window.location.origin;
+      const baseUrl = origin.replace(/\/api$/, '');
+      console.log('Constructed base URL from origin:', baseUrl);
+      const finalUrl = `${baseUrl}${attachment.url}`;
       console.log('Final URL:', finalUrl);
       return finalUrl;
     }

@@ -390,6 +390,10 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
         const cleanAttachmentUrl = attachment.url.startsWith('/') ? attachment.url : `/${attachment.url}`;
         return `${cleanBaseUrl}${cleanAttachmentUrl}`;
       }
+      // If we have a full URL, return it as is
+      if (attachment.url && (attachment.url.startsWith('http://') || attachment.url.startsWith('https://'))) {
+        return attachment.url;
+      }
       return attachment.url || '';
     }
   };
