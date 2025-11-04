@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { projectsAPI, meistertaskProjectsAPI } from '../../lib/api';
+import { projectsAPI } from '../../lib/api';
 
 const ProjectForm = ({ project, onSaved, onCancelled, isMeistertaskProject = false }) => {
   const [formData, setFormData] = useState({
@@ -53,6 +53,7 @@ const ProjectForm = ({ project, onSaved, onCancelled, isMeistertaskProject = fal
       newErrors.end_date = 'End date is required';
     }
     
+    // Validate that end date is after start date
     if (formData.start_date && formData.end_date) {
       const startDate = new Date(formData.start_date);
       const endDate = new Date(formData.end_date);
@@ -61,7 +62,7 @@ const ProjectForm = ({ project, onSaved, onCancelled, isMeistertaskProject = fal
         newErrors.end_date = 'End date must be after start date';
       }
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -77,7 +78,7 @@ const ProjectForm = ({ project, onSaved, onCancelled, isMeistertaskProject = fal
       setLoading(true);
       
       // Use the appropriate API based on the project type
-      const api = isMeistertaskProject ? meistertaskProjectsAPI : projectsAPI;
+      const api = projectsAPI;
       
       if (project) {
         // Update existing project
@@ -108,136 +109,105 @@ const ProjectForm = ({ project, onSaved, onCancelled, isMeistertaskProject = fal
   };
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
-          {project ? 'Edit Project' : isMeistertaskProject ? 'Create New Meistertask Project' : 'Create New Project'}
-        </h1>
-        <button
-          onClick={onCancelled}
-          className="text-gray-400 hover:text-gray-500"
-        >
-          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-
-      {errors.general && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
-          <p className="text-red-800">{errors.general}</p>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-medium text-gray-900">
+            {project ? 'Edit Project' : 'Create Project'}
+          </h3>
         </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="bg-white shadow rounded-lg p-6">
-        <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-          <div className="sm:col-span-6">
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700">
-              Project Title
-            </label>
-            <div className="mt-1">
+        
+        <form onSubmit={handleSubmit}>
+          <div className="px-6 py-4 space-y-4">
+            {errors.general && (
+              <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                <p className="text-red-700 text-sm">{errors.general}</p>
+              </div>
+            )}
+            
+            <div>
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+                Title
+              </label>
               <input
                 type="text"
-                name="title"
                 id="title"
+                name="title"
                 value={formData.title}
                 onChange={handleChange}
-                className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm ${
-                  errors.title ? 'border-red-300' : ''
-                }`}
+                className={`w-full p-2 border rounded-md ${errors.title ? 'border-red-500' : 'border-gray-300'}`}
+                placeholder="Project title"
               />
-              {errors.title && (
-                <p className="mt-2 text-sm text-red-600">{errors.title}</p>
-              )}
+              {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
             </div>
-          </div>
-
-          <div className="sm:col-span-6">
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-              Description
-            </label>
-            <div className="mt-1">
+            
+            <div>
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                Description
+              </label>
               <textarea
                 id="description"
                 name="description"
-                rows={3}
                 value={formData.description}
                 onChange={handleChange}
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                rows={3}
+                className={`w-full p-2 border rounded-md ${errors.description ? 'border-red-500' : 'border-gray-300'}`}
+                placeholder="Project description"
               />
             </div>
-          </div>
-
-          <div className="sm:col-span-3">
-            <label htmlFor="start_date" className="block text-sm font-medium text-gray-700">
-              Start Date
-            </label>
-            <div className="mt-1">
-              <input
-                type="date"
-                name="start_date"
-                id="start_date"
-                value={formData.start_date}
-                onChange={handleChange}
-                className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm ${
-                  errors.start_date ? 'border-red-300' : ''
-                }`}
-              />
-              {errors.start_date && (
-                <p className="mt-2 text-sm text-red-600">{errors.start_date}</p>
-              )}
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="start_date" className="block text-sm font-medium text-gray-700 mb-1">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  id="start_date"
+                  name="start_date"
+                  value={formData.start_date}
+                  onChange={handleChange}
+                  className={`w-full p-2 border rounded-md ${errors.start_date ? 'border-red-500' : 'border-gray-300'}`}
+                />
+                {errors.start_date && <p className="text-red-500 text-xs mt-1">{errors.start_date}</p>}
+              </div>
+              
+              <div>
+                <label htmlFor="end_date" className="block text-sm font-medium text-gray-700 mb-1">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  id="end_date"
+                  name="end_date"
+                  value={formData.end_date}
+                  onChange={handleChange}
+                  className={`w-full p-2 border rounded-md ${errors.end_date ? 'border-red-500' : 'border-gray-300'}`}
+                />
+                {errors.end_date && <p className="text-red-500 text-xs mt-1">{errors.end_date}</p>}
+              </div>
             </div>
           </div>
-
-          <div className="sm:col-span-3">
-            <label htmlFor="end_date" className="block text-sm font-medium text-gray-700">
-              End Date
-            </label>
-            <div className="mt-1">
-              <input
-                type="date"
-                name="end_date"
-                id="end_date"
-                value={formData.end_date}
-                onChange={handleChange}
-                className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm ${
-                  errors.end_date ? 'border-red-300' : ''
-                }`}
-              />
-              {errors.end_date && (
-                <p className="mt-2 text-sm text-red-600">{errors.end_date}</p>
-              )}
-            </div>
+          
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={onCancelled}
+              disabled={loading}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+            >
+              {loading ? 'Saving...' : (project ? 'Update' : 'Create')}
+            </button>
           </div>
-        </div>
-
-        <div className="mt-6 flex justify-end space-x-3">
-          <button
-            type="button"
-            onClick={onCancelled}
-            className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-          >
-            {loading ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Saving...
-              </>
-            ) : (
-              project ? 'Update Project' : isMeistertaskProject ? 'Create Meistertask Project' : 'Create Project'
-            )}
-          </button>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 };
