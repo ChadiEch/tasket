@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { tasksAPI, departmentsAPI, employeesAPI, projectsAPI, meistertaskProjectsAPI } from '../lib/api';
+import { tasksAPI, departmentsAPI, employeesAPI, projectsAPI } from '../lib/api';
 import { useAuth } from './AuthContext';
 import { useWebSocket } from './WebSocketContext';
 
@@ -20,7 +20,6 @@ export const AppProvider = ({ children }) => {
   const [departments, setDepartments] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [projects, setProjects] = useState([]); // Add projects state
-  const [meistertaskProjects, setMeistertaskProjects] = useState([]); // Add Meistertask projects state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
@@ -131,12 +130,11 @@ export const AppProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      const [tasksResponse, departmentsResponse, employeesResponse, projectsResponse, meistertaskProjectsResponse] = await Promise.all([
+      const [tasksResponse, departmentsResponse, employeesResponse, projectsResponse] = await Promise.all([
         tasksAPI.getTasks(),
         departmentsAPI.getDepartments(),
         employeesAPI.getEmployees(),
         projectsAPI.getProjects(), // Fetch projects
-        meistertaskProjectsAPI.getProjects(), // Fetch Meistertask projects
       ]);
 
       // Filter out any trashed tasks that might have slipped through
@@ -146,7 +144,6 @@ export const AppProvider = ({ children }) => {
       setDepartments(departmentsResponse.departments || []);
       setEmployees(employeesResponse.employees || []);
       setProjects(projectsResponse.projects || []); // Set projects
-      setMeistertaskProjects(meistertaskProjectsResponse.projects || []); // Set Meistertask projects
     } catch (error) {
       console.error('Error fetching data:', error);
       setError(error.message);
@@ -199,9 +196,6 @@ export const AppProvider = ({ children }) => {
         task.id === taskId ? { ...task, ...response.task } : task
       ));
       
-      // Don't emit WebSocket event here as the backend already handles it
-      // The WebSocket subscription will handle real-time updates for other users
-      
       return { task: response.task, error: null };
     } catch (error) {
       console.error('Error updating task:', error);
@@ -210,13 +204,13 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // New function specifically for updating task created_at when dragging
-  const updateTaskCreatedAt = async (taskId, createdAtDate) => {
+  // Update task created_at date (admin only)
+  const updateTaskCreatedAt = async (taskId, createdAt) => {
     try {
       setError(null);
-      const response = await tasksAPI.updateTaskCreatedAt(taskId, createdAtDate);
+      const response = await tasksAPI.updateTask(taskId, { created_at: createdAt });
       setTasks(prev => prev.map(task => 
-        task.id === taskId ? response.task : task
+        task.id === taskId ? { ...task, ...response.task } : task
       ));
       
       return { task: response.task, error: null };
@@ -227,36 +221,38 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const deleteTask = async (taskId, action = 'delete') => {
+  // Delete task (move to trash)
+  const deleteTask = async (taskId) => {
     try {
       setError(null);
-      await tasksAPI.deleteTask(taskId, action);
-      setTasks(prev => prev.filter(task => task.id !== taskId));
-      return { error: null };
+      const response = await tasksAPI.updateTask(taskId, { status: 'trashed' });
+      setTasks(prev => prev.map(task => 
+        task.id === taskId ? { ...task, ...response.task } : task
+      ));
+      
+      return { task: response.task, error: null };
     } catch (error) {
       console.error('Error deleting task:', error);
       setError(error.message);
-      return { error: error.message };
+      return { task: null, error: error.message };
     }
   };
 
+  // Restore task from trash
   const restoreTask = async (taskId) => {
     try {
       setError(null);
-      const response = await tasksAPI.restoreTask(taskId);
-      // Add the restored task back to the tasks list if it doesn't exist there
-      setTasks(prev => {
-        const existingIndex = prev.findIndex(task => task.id === taskId);
-        if (existingIndex >= 0) {
-          // Update existing task
-          const newTasks = [...prev];
-          newTasks[existingIndex] = response.task;
-          return newTasks;
-        } else {
-          // Add restored task to the beginning of the list
-          return [response.task, ...prev];
-        }
+      // Restore to previous status or default to 'planned'
+      const previousStatus = tasks.find(task => task.id === taskId)?.status_before_trash || 'planned';
+      const response = await tasksAPI.updateTask(taskId, { 
+        status: previousStatus,
+        status_before_trash: null,
+        trashed_at: null
       });
+      setTasks(prev => prev.map(task => 
+        task.id === taskId ? { ...task, ...response.task } : task
+      ));
+      
       return { task: response.task, error: null };
     } catch (error) {
       console.error('Error restoring task:', error);
@@ -265,37 +261,18 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // Permanently delete task
   const permanentlyDeleteTask = async (taskId) => {
     try {
       setError(null);
-      await tasksAPI.permanentlyDeleteTask(taskId);
-      // Remove from tasks list if it exists there
+      await tasksAPI.deleteTask(taskId);
       setTasks(prev => prev.filter(task => task.id !== taskId));
+      
       return { error: null };
     } catch (error) {
       console.error('Error permanently deleting task:', error);
       setError(error.message);
       return { error: error.message };
-    }
-  };
-
-  // Update task state without making an API call
-  const updateTaskState = (updatedTask) => {
-    // Ensure we don't add trashed tasks to the main task list
-    if (updatedTask.status === 'trashed') {
-      setTasks(prev => prev.filter(task => task.id !== updatedTask.id));
-    } else {
-      setTasks(prev => prev.map(task => 
-        task.id === updatedTask.id ? updatedTask : task
-      ));
-    }
-  };
-
-  // Add task to state without making an API call
-  const addTaskState = (newTask) => {
-    // Ensure we don't add trashed tasks to the main task list
-    if (newTask.status !== 'trashed') {
-      setTasks(prev => [newTask, ...prev]);
     }
   };
 
@@ -326,33 +303,31 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const updateDepartment = async (departmentData) => {
+  const updateDepartment = async (departmentId, departmentData) => {
     try {
       setError(null);
-      const departmentId = departmentData.id;
       const response = await departmentsAPI.updateDepartment(departmentId, departmentData);
       setDepartments(prev => prev.map(dept => 
-        dept.id === departmentId ? response.department : dept
+        dept.id === departmentId ? { ...dept, ...response.department } : dept
       ));
-      return { department: response.department, error: null };
+      return response.department;
     } catch (error) {
       console.error('Error updating department:', error);
       setError(error.message);
-      return { department: null, error: error.message };
+      throw error;
     }
   };
 
   const deleteDepartment = async (departmentId) => {
     try {
       setError(null);
-      const response = await departmentsAPI.deleteDepartment(departmentId);
+      await departmentsAPI.deleteDepartment(departmentId);
       setDepartments(prev => prev.filter(dept => dept.id !== departmentId));
-      return { error: null, message: response.message || 'Department deleted successfully' };
+      return { error: null };
     } catch (error) {
       console.error('Error deleting department:', error);
-      const errorMessage = error.message || 'Failed to delete department';
-      setError(errorMessage);
-      return { error: errorMessage };
+      setError(error.message);
+      return { error: error.message };
     }
   };
 
@@ -383,46 +358,43 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const updateEmployee = async (employeeData) => {
+  const updateEmployee = async (employeeId, employeeData) => {
     try {
       setError(null);
-      const employeeId = employeeData.id;
       const response = await employeesAPI.updateEmployee(employeeId, employeeData);
       setEmployees(prev => prev.map(emp => 
-        emp.id === employeeId ? response.employee : emp
+        emp.id === employeeId ? { ...emp, ...response.employee } : emp
       ));
       
-      // Also update the selectedEmployee if it matches
+      // Also update selectedEmployee if it matches
       if (selectedEmployee && selectedEmployee.id === employeeId) {
         setSelectedEmployee(response.employee);
       }
       
-      return { employee: response.employee, error: null };
+      return response.employee;
     } catch (error) {
       console.error('Error updating employee:', error);
       setError(error.message);
-      return { employee: null, error: error.message };
+      throw error;
     }
   };
 
   const deleteEmployee = async (employeeId) => {
     try {
       setError(null);
-      const response = await employeesAPI.deleteEmployee(employeeId);
-      // Only remove from state if actually deleted (not just deactivated)
-      if (response.message.includes('deleted')) {
-        setEmployees(prev => prev.filter(emp => emp.id !== employeeId));
-      } else {
-        // If deactivated, refresh the employee data to show updated status
-        const employeesResponse = await employeesAPI.getEmployees();
-        setEmployees(employeesResponse.employees || []);
+      await employeesAPI.deleteEmployee(employeeId);
+      setEmployees(prev => prev.filter(emp => emp.id !== employeeId));
+      
+      // Also clear selectedEmployee if it matches
+      if (selectedEmployee && selectedEmployee.id === employeeId) {
+        setSelectedEmployee(null);
       }
-      return { error: null, message: response.message || 'Employee processed successfully' };
+      
+      return { error: null };
     } catch (error) {
       console.error('Error deleting employee:', error);
-      const errorMessage = error.message || 'Failed to delete employee';
-      setError(errorMessage);
-      return { error: errorMessage };
+      setError(error.message);
+      return { error: error.message };
     }
   };
 
@@ -476,61 +448,6 @@ export const AppProvider = ({ children }) => {
       return { error: null };
     } catch (error) {
       console.error('Error deleting project:', error);
-      setError(error.message);
-      return { error: error.message };
-    }
-  };
-
-  // Meistertask Project operations
-  const addMeistertaskProject = async (projectData) => {
-    try {
-      setError(null);
-      const response = await meistertaskProjectsAPI.createProject(projectData);
-      setMeistertaskProjects(prev => [...prev, response.project]);
-      return { project: response.project, error: null };
-    } catch (error) {
-      console.error('Error creating Meistertask project:', error);
-      setError(error.message);
-      return { project: null, error: error.message };
-    }
-  };
-
-  const createMeistertaskProject = async (projectData) => {
-    try {
-      setError(null);
-      const response = await meistertaskProjectsAPI.createProject(projectData);
-      setMeistertaskProjects(prev => [...prev, response.project]);
-      return { project: response.project, error: null };
-    } catch (error) {
-      console.error('Error creating Meistertask project:', error);
-      setError(error.message);
-      return { project: null, error: error.message };
-    }
-  };
-
-  const updateMeistertaskProject = async (projectId, projectData) => {
-    try {
-      setError(null);
-      const response = await meistertaskProjectsAPI.updateProject(projectId, projectData);
-      setMeistertaskProjects(prev => prev.map(project => 
-        project.id === projectId ? response.project : project
-      ));
-      return response.project;
-    } catch (error) {
-      console.error('Error updating Meistertask project:', error);
-      setError(error.message);
-      throw error;
-    }
-  };
-
-  const deleteMeistertaskProject = async (projectId) => {
-    try {
-      setError(null);
-      await meistertaskProjectsAPI.deleteProject(projectId);
-      setMeistertaskProjects(prev => prev.filter(project => project.id !== projectId));
-      return { error: null };
-    } catch (error) {
-      console.error('Error deleting Meistertask project:', error);
       setError(error.message);
       return { error: error.message };
     }
@@ -765,7 +682,6 @@ export const AppProvider = ({ children }) => {
     departments,
     employees,
     projects, // Add projects to context
-    meistertaskProjects, // Add Meistertask projects to context
     loading,
     error,
     
@@ -811,12 +727,6 @@ export const AppProvider = ({ children }) => {
     createProject,
     updateProject,
     deleteProject,
-    
-    // Meistertask Project operations
-    addMeistertaskProject,
-    createMeistertaskProject,
-    updateMeistertaskProject,
-    deleteMeistertaskProject,
     
     // Function aliases for compatibility
     addTask: createTask,

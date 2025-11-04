@@ -17,7 +17,6 @@ import ProjectList from './projects/ProjectList'
 import ProjectTasks from './projects/ProjectTasks'
 import NotificationPage from './NotificationPage'
 import TrashPage from './TrashPage'
-import Meistertask from './meistertask/Meistertask'
 
 // Remove the temporary placeholder for EnhancedCalendar since we're using the real component now
 
@@ -79,8 +78,6 @@ const MainContent = () => {
         return <NotificationPage />
       case 'trash':
         return <TrashPage />
-      case 'meistertask':
-        return <Meistertask />
       case 'tasks':
         // Always use the enhanced calendar with 3-step navigation
         return <EnhancedCalendar />

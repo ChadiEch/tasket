@@ -202,16 +202,13 @@ export const authAPI = {
         body: formData,
       });
     } else {
-      // Regular JSON update
-      // Remove photo field if it's not a File object
-      const { photo, ...otherData } = profileData;
-      
+      // Regular JSON request
       return apiRequest('/auth/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: otherData,
+        body: profileData,
       });
     }
   },
@@ -219,254 +216,39 @@ export const authAPI = {
 
 // Tasks API
 export const tasksAPI = {
-  getTasks: async (filters = {}) => {
-    const params = new URLSearchParams(filters);
-    return apiRequest(`/tasks?${params}`);
-  },
-
-  getTrashedTasks: async () => {
-    return apiRequest('/tasks/trashed');
+  getTasks: async (params = {}) => {
+    const queryParams = new URLSearchParams(params);
+    return apiRequest(`/tasks?${queryParams}`);
   },
 
   getTask: async (id) => {
     return apiRequest(`/tasks/${id}`);
   },
 
-  createTask: async (taskData, files = [], onUploadProgress) => {
-    // Check if we have files to upload
-    if (files && files.length > 0) {
-      // Handle file upload with FormData
-      const formData = new FormData();
-      
-      // Prepare task data with proper formatting
-      const { attachments, estimated_hours, ...otherData } = taskData;
-      
-      // Ensure estimated_hours is properly formatted and always provided
-      const formattedTaskData = {
-        ...otherData,
-        estimated_hours: estimated_hours !== undefined && estimated_hours !== null && estimated_hours !== '' ? parseFloat(estimated_hours) : 1.00,
-        // Filter out placeholder attachments (those with empty URLs) when sending to backend
-        attachments: Array.isArray(attachments) ? attachments.filter(att => att && att.url) : []
-      };
-      
-      // Log for debugging
-      console.log('Sending FormData with task data:', formattedTaskData);
-      
-      // Append task data as JSON string
-      formData.append('data', JSON.stringify(formattedTaskData));
-      
-      // Append files
-      files.forEach((file, index) => {
-        formData.append('attachments', file);
-      });
-      
-      // Log FormData contents for debugging
-      console.log('FormData contents:');
-      for (let [key, value] of formData.entries()) {
-        console.log(key, value);
-      }
-      
-      // For FormData requests, we don't set Content-Type header
-      // Browser will set it with boundary automatically
-      const config = {
-        method: 'POST',
-        body: formData,
-      };
-      
-      // Add progress callback if provided
-      if (onUploadProgress) {
-        config.onUploadProgress = onUploadProgress;
-      }
-      
-      return apiRequest('/tasks', config);
-    } else {
-      // Ensure required fields are properly formatted
-      const formattedData = {
-        ...taskData,
-        // Ensure estimated_hours is always provided and is at least 1
-        estimated_hours: taskData.estimated_hours !== undefined && taskData.estimated_hours !== null && taskData.estimated_hours !== '' ? parseFloat(taskData.estimated_hours) : 1.00,
-        // Ensure attachments is an array and filter out invalid attachments
-        attachments: Array.isArray(taskData.attachments) ? taskData.attachments.filter(att => att && att.url) : []
-      };
-      
-      // Remove any undefined or null values that might cause issues
-      Object.keys(formattedData).forEach(key => {
-        if (formattedData[key] === undefined || formattedData[key] === null) {
-          delete formattedData[key];
-        }
-      });
-      
-      return apiRequest('/tasks', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: formattedData,
-      });
-    }
-  },
-
-  updateTask: async (id, taskData, files = [], onUploadProgress) => {
-    // Check if we have files to upload
-    if (files && files.length > 0) {
-      // Handle file upload with FormData
-      const formData = new FormData();
-      
-      // Prepare task data with proper formatting
-      const { attachments, estimated_hours, ...otherData } = taskData;
-      
-      // Ensure estimated_hours is properly formatted
-      const formattedTaskData = {
-        ...otherData,
-        estimated_hours: estimated_hours !== undefined && estimated_hours !== null && estimated_hours !== '' ? parseFloat(estimated_hours) : 1.00,
-        // Filter out placeholder attachments (those with empty URLs) when sending to backend
-        attachments: Array.isArray(attachments) ? attachments.filter(att => att && att.url) : []
-      };
-      
-      // Log for debugging
-      console.log('Sending FormData update with task data:', formattedTaskData);
-      
-      // Append task data as JSON string
-      formData.append('data', JSON.stringify(formattedTaskData));
-      
-      // Append files
-      files.forEach((file, index) => {
-        formData.append('attachments', file);
-      });
-      
-      // Log FormData contents for debugging
-      console.log('FormData contents for update:');
-      for (let [key, value] of formData.entries()) {
-        console.log(key, value);
-      }
-      
-      // For FormData requests, we don't set Content-Type header
-      // Browser will set it with boundary automatically
-      const config = {
-        method: 'PUT',
-        body: formData,
-      };
-      
-      // Add progress callback if provided
-      if (onUploadProgress) {
-        config.onUploadProgress = onUploadProgress;
-      }
-      
-      return apiRequest(`/tasks/${id}`, config);
-    } else {
-      // For drag-and-drop updates, we might only want to update specific fields
-      // Don't add default values if they're not provided
-      const formattedData = { ...taskData };
-      
-      // Only format estimated_hours if it's provided
-      if (taskData.estimated_hours !== undefined && taskData.estimated_hours !== null) {
-        formattedData.estimated_hours = taskData.estimated_hours !== '' ? parseFloat(taskData.estimated_hours) : 1.00;
-      }
-      
-      // Only format attachments if they're provided
-      if (taskData.attachments !== undefined) {
-        formattedData.attachments = Array.isArray(taskData.attachments) ? taskData.attachments.filter(att => att && att.url) : [];
-      }
-      
-      // Remove any undefined or null values that might cause issues
-      Object.keys(formattedData).forEach(key => {
-        if (formattedData[key] === undefined || formattedData[key] === null) {
-          delete formattedData[key];
-        }
-      });
-      
-      return apiRequest(`/tasks/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: formattedData,
-      });
-    }
-  },
-
-  deleteTask: async (id, action = 'delete') => {
-    return apiRequest(`/tasks/${id}?action=${action}`, {
-      method: 'DELETE',
+  createTask: async (taskData) => {
+    return apiRequest('/tasks', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: taskData,
     });
   },
 
-  restoreTask: async (id) => {
-    return apiRequest(`/tasks/${id}/restore`, {
+  updateTask: async (id, taskData) => {
+    return apiRequest(`/tasks/${id}`, {
       method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: taskData,
     });
   },
 
-  permanentlyDeleteTask: async (id) => {
-    return apiRequest(`/tasks/${id}/permanent`, {
+  deleteTask: async (id) => {
+    return apiRequest(`/tasks/${id}`, {
       method: 'DELETE',
     });
-  },
-
-  // Add a dedicated file upload method
-  uploadFile: async (file, onUploadProgress) => {
-    try {
-      const formData = new FormData();
-      
-      // Create a minimal but valid task data object for the upload
-      // Fix: Remove duplicate extensions from file name
-      let fileName = file.name || 'Attachment';
-      
-      // More precise duplicate extension removal
-      // Look for patterns like .ext.ext and remove the first .ext
-      const dotParts = fileName.split('.');
-      if (dotParts.length >= 3) {
-        // Check if the last two parts are the same (e.g., png, png)
-        if (dotParts[dotParts.length - 1] === dotParts[dotParts.length - 2]) {
-          // Remove the second-to-last part
-          dotParts.splice(dotParts.length - 2, 1);
-          fileName = dotParts.join('.');
-        }
-      }
-      
-      const taskData = {
-        title: 'File Upload - ' + fileName,
-        description: 'File uploaded via todo list',
-        created_at: new Date().toISOString(),
-        due_date: new Date().toISOString(),
-        priority: 'medium',
-        status: 'planned',
-        estimated_hours: 0.01, // Minimum valid value
-        attachments: [] // Will be populated with the uploaded file
-      };
-      
-      // Append task data as JSON string
-      formData.append('data', JSON.stringify(taskData));
-      
-      // Append the file
-      formData.append('attachments', file);
-      
-      // For FormData requests, we don't set Content-Type header
-      // Browser will set it with boundary automatically
-      const config = {
-        method: 'POST',
-        body: formData,
-      };
-      
-      // Add progress callback if provided
-      if (onUploadProgress) {
-        config.onUploadProgress = onUploadProgress;
-      }
-      
-      console.log('Uploading file to server:', file.name);
-      const result = await apiRequest('/tasks', config);
-      console.log('File upload result:', result);
-      
-      return result;
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      // Provide more detailed error information
-      if (error.message) {
-        throw new Error(`File upload failed: ${error.message}`);
-      } else {
-        throw new Error('File upload failed: Unknown error occurred');
-      }
-    }
   },
 };
 
@@ -509,9 +291,9 @@ export const departmentsAPI = {
 
 // Employees API
 export const employeesAPI = {
-  getEmployees: async (filters = {}) => {
-    const params = new URLSearchParams(filters);
-    return apiRequest(`/employees?${params}`);
+  getEmployees: async (params = {}) => {
+    const queryParams = new URLSearchParams(params);
+    return apiRequest(`/employees?${queryParams}`);
   },
 
   getEmployee: async (id) => {
@@ -519,83 +301,23 @@ export const employeesAPI = {
   },
 
   createEmployee: async (employeeData) => {
-    // Check if we have a file to upload
-    if (employeeData.photo && employeeData.photo instanceof File) {
-      // Handle file upload
-      const formData = new FormData();
-      
-      // Append all employee data as JSON string
-      const { photo, ...otherData } = employeeData;
-      formData.append('data', JSON.stringify(otherData));
-      formData.append('photo', photo);
-      
-      return apiRequest('/employees', {
-        method: 'POST',
-        body: formData,
-      });
-    } else {
-      // Regular JSON creation
-      // Ensure photo field is properly handled and salary is formatted
-      const formattedData = {
-        ...employeeData,
-        salary: employeeData.salary ? parseFloat(employeeData.salary) : null
-      };
-      
-      // Remove any undefined or null values that might cause issues
-      Object.keys(formattedData).forEach(key => {
-        if (formattedData[key] === undefined || formattedData[key] === null) {
-          delete formattedData[key];
-        }
-      });
-      
-      return apiRequest('/employees', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: formattedData,
-      });
-    }
+    return apiRequest('/employees', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: employeeData,
+    });
   },
 
   updateEmployee: async (id, employeeData) => {
-    // Check if we have a file to upload
-    if (employeeData.photo && employeeData.photo instanceof File) {
-      // Handle file upload
-      const formData = new FormData();
-      
-      // Append all employee data as JSON string
-      const { photo, ...otherData } = employeeData;
-      formData.append('data', JSON.stringify(otherData));
-      formData.append('photo', photo);
-      
-      return apiRequest(`/employees/${id}`, {
-        method: 'PUT',
-        body: formData,
-      });
-    } else {
-      // Regular JSON update
-      // Ensure salary is properly formatted if provided
-      const formattedData = { ...employeeData };
-      if (employeeData.salary !== undefined) {
-        formattedData.salary = employeeData.salary ? parseFloat(employeeData.salary) : null;
-      }
-      
-      // Remove any undefined or null values that might cause issues
-      Object.keys(formattedData).forEach(key => {
-        if (formattedData[key] === undefined || formattedData[key] === null) {
-          delete formattedData[key];
-        }
-      });
-      
-      return apiRequest(`/employees/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: formattedData,
-      });
-    }
+    return apiRequest(`/employees/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: employeeData,
+    });
   },
 
   deleteEmployee: async (id) => {
@@ -641,47 +363,6 @@ export const projectsAPI = {
 
   deleteProject: async (id) => {
     return apiRequest(`/projects/${id}`, {
-      method: 'DELETE',
-    });
-  },
-};
-
-// Meistertask Projects API
-export const meistertaskProjectsAPI = {
-  getProjects: async () => {
-    return apiRequest('/meistertask-projects');
-  },
-
-  getProject: async (id) => {
-    return apiRequest(`/meistertask-projects/${id}`);
-  },
-
-  getProjectTasks: async (id) => {
-    return apiRequest(`/meistertask-projects/${id}/tasks`);
-  },
-
-  createProject: async (projectData) => {
-    return apiRequest('/meistertask-projects', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: projectData,
-    });
-  },
-
-  updateProject: async (id, projectData) => {
-    return apiRequest(`/meistertask-projects/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: projectData,
-    });
-  },
-
-  deleteProject: async (id) => {
-    return apiRequest(`/meistertask-projects/${id}`, {
       method: 'DELETE',
     });
   },
