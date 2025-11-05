@@ -242,16 +242,12 @@ export const AppProvider = ({ children }) => {
   const restoreTask = async (taskId) => {
     try {
       setError(null);
-      // Restore to previous status or default to 'planned'
-      const previousStatus = tasks.find(task => task.id === taskId)?.status_before_trash || 'planned';
-      const response = await tasksAPI.updateTask(taskId, { 
-        status: previousStatus,
-        status_before_trash: null,
-        trashed_at: null
+      const response = await tasksAPI.restoreTask(taskId);
+      // Remove from current tasks list and add the restored task
+      setTasks(prev => {
+        const filtered = prev.filter(task => task.id !== taskId);
+        return [response.task, ...filtered];
       });
-      setTasks(prev => prev.map(task => 
-        task.id === taskId ? { ...task, ...response.task } : task
-      ));
       
       return { task: response.task, error: null };
     } catch (error) {
@@ -261,11 +257,11 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // Permanently delete task
+  // Permanently delete task from trash
   const permanentlyDeleteTask = async (taskId) => {
     try {
       setError(null);
-      await tasksAPI.deleteTask(taskId);
+      await tasksAPI.permanentlyDeleteTask(taskId);
       setTasks(prev => prev.filter(task => task.id !== taskId));
       
       return { error: null };

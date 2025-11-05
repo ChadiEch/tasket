@@ -292,6 +292,22 @@ export const tasksAPI = {
       method: 'DELETE',
     });
   },
+
+  getTrashedTasks: async () => {
+    return apiRequest('/tasks/trashed');
+  },
+
+  restoreTask: async (id) => {
+    return apiRequest(`/tasks/${id}/restore`, {
+      method: 'PUT',
+    });
+  },
+
+  permanentlyDeleteTask: async (id) => {
+    return apiRequest(`/tasks/${id}/permanent`, {
+      method: 'DELETE',
+    });
+  },
 };
 
 // Departments API
