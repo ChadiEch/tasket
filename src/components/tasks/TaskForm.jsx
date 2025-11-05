@@ -296,6 +296,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
         if (filesToUpload.length > 0) {
           setIsUploading(true);
           setUploadProgress(0);
+          console.log('Updating task with file attachments');
           result = await tasksAPI.updateTask(task.id, {
             ...taskData,
             attachments: attachmentsForSubmission
@@ -310,6 +311,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
             updateTaskState(result.task);
           }
         } else {
+          console.log('Updating task without file attachments');
           result = await updateTask(task.id, taskData);
         }
       } else {
@@ -317,6 +319,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
         if (filesToUpload.length > 0) {
           setIsUploading(true);
           setUploadProgress(0);
+          console.log('Creating task with file attachments');
           result = await tasksAPI.createTask({
             ...taskData,
             attachments: attachmentsForSubmission
@@ -329,6 +332,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
             addTaskState(result.task);
           }
         } else {
+          console.log('Creating task without file attachments');
           result = await createTask(taskData);
         }
       }

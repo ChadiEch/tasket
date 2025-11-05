@@ -225,24 +225,66 @@ export const tasksAPI = {
     return apiRequest(`/tasks/${id}`);
   },
 
-  createTask: async (taskData) => {
-    return apiRequest('/tasks', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: taskData,
-    });
+  createTask: async (taskData, files = [], onUploadProgress) => {
+    // If we have files to upload, use FormData
+    if (files && files.length > 0) {
+      const formData = new FormData();
+      
+      // Append task data as JSON string
+      formData.append('data', JSON.stringify(taskData));
+      
+      // Append files
+      files.forEach((file, index) => {
+        formData.append('attachments', file);
+      });
+      
+      // Use apiRequest with progress tracking
+      return apiRequest('/tasks', {
+        method: 'POST',
+        body: formData,
+        onUploadProgress: onUploadProgress
+      });
+    } else {
+      // Regular JSON request
+      return apiRequest('/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: taskData,
+      });
+    }
   },
 
-  updateTask: async (id, taskData) => {
-    return apiRequest(`/tasks/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: taskData,
-    });
+  updateTask: async (id, taskData, files = [], onUploadProgress) => {
+    // If we have files to upload, use FormData
+    if (files && files.length > 0) {
+      const formData = new FormData();
+      
+      // Append task data as JSON string
+      formData.append('data', JSON.stringify(taskData));
+      
+      // Append files
+      files.forEach((file, index) => {
+        formData.append('attachments', file);
+      });
+      
+      // Use apiRequest with progress tracking
+      return apiRequest(`/tasks/${id}`, {
+        method: 'PUT',
+        body: formData,
+        onUploadProgress: onUploadProgress
+      });
+    } else {
+      // Regular JSON request
+      return apiRequest(`/tasks/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: taskData,
+      });
+    }
   },
 
   deleteTask: async (id) => {
